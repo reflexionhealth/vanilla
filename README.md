@@ -13,3 +13,7 @@ For support using any of the packages, feel free to contact
 
 ### License
 Vanilla is licensed under the BSD license (see `LICENSE`).
+
+The contents of the `vanilla/unstable` package (`unstable/`) are dedicated to
+the public domain. The package contains various ad-hoc snippets which are freely
+copyable into your own code if you find them useful.
