@@ -51,12 +51,12 @@ func mustMakeErrorBody(errmsg string) string {
 // Error sets Reflexion-Request-Errors and renders the errors json body
 func Error(r *router.Response, status int, errmsg string) {
 	if len(HeaderRequestErrors) > 0 {
-		header := mustMakeErrorBody(errmsg)
-		r.Header().Set(HeaderRequestErrors, body)
+		header := mustMakeErrorHeader(errmsg)
+		r.Header().Set(HeaderRequestErrors, header)
 	}
 
-	body := mustMakeErrorHeader(errmsg)
-	r.JSON(status, header)
+	body := mustMakeErrorBody(errmsg)
+	r.JSON(status, body)
 }
 
 func StaticError(r *router.Response, status int, header string, body string) {
