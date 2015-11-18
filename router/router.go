@@ -1,8 +1,9 @@
+package router
+
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
 //
 // Modifications by Kevin Stenerson for Reflexion Health Inc. Copyright 2015
-package router
 
 import (
 	"net"

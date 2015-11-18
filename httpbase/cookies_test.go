@@ -1,8 +1,9 @@
+package httpbase
+
 // This file is Copyright 2015 Matt Silverlock (matt@eatsleeprepeat.net).  All rights reserved.
 // Use of this source code is governed by a BSD style license.
 //
 // Modifications by Kevin Stenerson for Reflexion Health Inc. Copyright 2015
-package httpbase
 
 import (
 	"bytes"

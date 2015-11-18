@@ -1,4 +1,4 @@
-// crypto wraps go's builtin crypto libraries to make our common operations easy
+// Package crypto wraps go's builtin crypto libraries to make our common operations easy
 package crypto
 
 import (
