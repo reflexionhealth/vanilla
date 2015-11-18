@@ -127,7 +127,7 @@ func (at *AlterTable) Sql() string {
 
 	exprs := 0
 	for _, col := range at.adds {
-		if exprs += 1; exprs > 0 {
+		if exprs += 1; exprs > 1 {
 			qry.WriteString(", ")
 		}
 		qry.WriteString("ADD COLUMN ")
@@ -135,7 +135,7 @@ func (at *AlterTable) Sql() string {
 	}
 
 	for _, action := range at.actions {
-		if exprs += 1; exprs > 0 {
+		if exprs += 1; exprs > 1 {
 			qry.WriteString(", ")
 		}
 		qry.WriteString(action)
