@@ -33,7 +33,7 @@ func MustGenerateRSAKey(size int) *rsa.PrivateKey {
 	return key
 }
 
-func LoadCertificatePEM(path string) (*x509.Certificate, err) {
+func LoadCertificatePEM(path string) (*x509.Certificate, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func LoadCertificatePEM(path string) (*x509.Certificate, err) {
 
 	block, _ := pem.Decode(data) // ignoring remaining data
 	if block.Type != "CERTIFICATE" {
-		return nil, PEMTypeError{"CERTIFICATE", block.Type}
+		return nil, &PEMTypeError{"CERTIFICATE", block.Type}
 	}
 
 	return x509.ParseCertificate(block.Bytes)
@@ -64,7 +64,7 @@ func LoadRSAPrivateKeyPEM(path string) (*rsa.PrivateKey, error) {
 
 	block, _ := pem.Decode(data) // ignoring remaining data
 	if block.Type != "RSA PRIVATE KEY" {
-		return nil, PEMTypeError{"RSA PRIVATE KEY", block.Type}
+		return nil, &PEMTypeError{"RSA PRIVATE KEY", block.Type}
 	}
 
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -73,17 +73,17 @@ func LoadRSAPrivateKeyPEM(path string) (*rsa.PrivateKey, error) {
 func MustLoadRSAPrivateKeyPEM(path string) *rsa.PrivateKey {
 	key, err := LoadRSAPrivateKeyPEM(path)
 	if err != nil {
-		panic(error)
+		panic(err)
 	}
 
 	return key
 }
 
-struct PEMTypeError {
+type PEMTypeError struct {
 	Expected string
 	Received string
 }
 
-func (err* PEMTypeError) Error() string {
-	return `pem: expected "` + err.Expected + `" but recieved "` + err.Recieved + `"`
+func (err *PEMTypeError) Error() string {
+	return `pem: expected "` + err.Expected + `" but recieved "` + err.Received + `"`
 }
