@@ -152,6 +152,74 @@ func (at *AlterTable) Args() []interface{} {
 	return nil
 }
 
+// SELECT columns ...
+// TODO: Having, GroupBy, OrderBy, Limit, Offset
+type SelectStatement struct {
+	table      string
+	selection  string
+	columns    []Column
+	conditions []string
+	arguments  []interface{}
+}
+
+func Select(columns string) *SelectStatement {
+	return &SelectStatement{"", columns, nil, nil, nil}
+}
+
+func SelectColumns(columns []Column) *SelectStatement {
+	return &SelectStatement{"", "", columns, nil, nil}
+}
+
+func (ss *SelectStatement) From(table string) *SelectStatement {
+	ss.table = table
+	return ss
+}
+
+func (ss *SelectStatement) FromTable(table Table) *SelectStatement {
+	ss.table = table.Name
+	return ss
+}
+
+func (ss *SelectStatement) Where(condition string, args ...interface{}) *SelectStatement {
+	ss.conditions = append(ss.conditions, condition)
+	ss.arguments = append(ss.arguments, args...)
+	return ss
+}
+
+func (ss *SelectStatement) Sql() string {
+	qry := bytes.Buffer{}
+	qry.WriteString("SELECT ")
+	if len(ss.columns) > 0 {
+		for i, col := range ss.columns {
+			if i > 0 {
+				qry.WriteString(", ")
+			}
+			qry.WriteString(col.Name)
+		}
+	} else {
+		qry.WriteString(ss.selection)
+	}
+
+	qry.WriteString(" FROM ")
+	qry.WriteString(ss.table)
+
+	if len(ss.conditions) > 0 {
+		qry.WriteString(" WHERE ")
+		for i, cond := range ss.conditions {
+			if i > 0 {
+				qry.WriteString(", ")
+			}
+			qry.WriteString(cond)
+		}
+	}
+
+	return qry.String()
+}
+
+func (ss *SelectStatement) Args() []interface{} {
+	return ss.arguments
+}
+
 type ColumnsFlag int
 
 const (
