@@ -1,5 +1,5 @@
-// Package crypto wraps go's builtin crypto libraries to make common operations easy
-// and to reduce the number of crypto/etc imports that must be put in each file
+// Package crypto wraps go's builtin crypto libraries to make common operations easier.
+// It also helps reduce the number of crypto/etc imports that must be put in each file.
 package crypto
 
 import (
