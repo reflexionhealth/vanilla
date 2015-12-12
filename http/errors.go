@@ -1,4 +1,4 @@
-package httpbase
+package http
 
 import (
 	"encoding/json"

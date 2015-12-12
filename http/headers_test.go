@@ -1,4 +1,4 @@
-package httpbase
+package http
 
 import (
 	"net/http"

@@ -1,4 +1,4 @@
-package httpbase
+package http
 
 // This file is Copyright 2015 Matt Silverlock (matt@eatsleeprepeat.net).  All rights reserved.
 // Use of this source code is governed by a BSD style license.

@@ -1,4 +1,4 @@
-package httpbase
+package http
 
 import "github.com/reflexionhealth/vanilla/router"
 

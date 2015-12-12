@@ -1,4 +1,4 @@
-package httpbase
+package http
 
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
