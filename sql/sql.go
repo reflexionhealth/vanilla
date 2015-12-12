@@ -1,4 +1,4 @@
-// Package sql provides a collection of statement builders to make writing sql
+// Package sql provides a collection of utilities to make working with sql
 // in Golang more natural. The primary use is building dynamic queries from
 // from in-memory data structures and other data sources.
 //
@@ -10,7 +10,11 @@
 //
 package sql
 
-import "bytes"
+import (
+	"bytes"
+	"reflect"
+	"unicode"
+)
 
 type Sqler interface {
 	Sql() string
@@ -146,4 +150,55 @@ func (at *AlterTable) Sql() string {
 
 func (at *AlterTable) Args() []interface{} {
 	return nil
+}
+
+type ColumnsFlag int
+
+const (
+	ColumnNamesSnakecase ColumnsFlag = 1 << iota
+	// ColumnNamesLowercase
+	// ColumnNamesCamelcase
+	// ColumnNamesPascalcase
+	ColumnsOnlyExported
+	// ColumnsOnlyTagged
+)
+
+func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
+	typ := reflect.TypeOf(structValue)
+	if typ.Kind() != reflect.Struct {
+		// needless runtime sacrifice to the gods of type safety
+		return nil, &reflect.ValueError{"ColumnsFor", typ.Kind()}
+	}
+
+	var columns []Column
+	for i := 0; i < typ.NumField(); i++ {
+		fld := typ.Field(i)
+		if flags&ColumnsOnlyExported != 0 && len(fld.PkgPath) > 0 {
+			continue
+		}
+
+		if flags&ColumnNamesSnakecase != 0 {
+			columns = append(columns, Column{Name: snakecase(fld.Name)})
+		} else {
+			columns = append(columns, Column{Name: fld.Name})
+		}
+	}
+
+	return columns, nil
+}
+
+func snakecase(input string) string {
+	var output bytes.Buffer
+	for i, char := range input {
+		if unicode.IsUpper(char) {
+			if i > 0 {
+				output.WriteRune('_')
+			}
+			output.WriteRune(unicode.ToLower(char))
+		} else {
+			output.WriteRune(char)
+		}
+	}
+
+	return output.String()
 }
