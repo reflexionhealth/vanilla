@@ -27,8 +27,8 @@ type Column struct {
 	Constraints []string
 }
 
-func (c *Column) WriteSql(buf *bytes.Buffer) {
-	buf.WriteString(c.Name)
+func (c *Column) WriteSql(buf *bytes.Buffer, dct *Dialect) {
+	dct.WriteIdentifier(buf, c.Name)
 	buf.WriteString(" ")
 	buf.WriteString(c.Type)
 	for _, con := range c.Constraints {
@@ -38,32 +38,57 @@ func (c *Column) WriteSql(buf *bytes.Buffer) {
 }
 
 type Table struct {
-	Name    string
-	Columns []Column
+	Name        string
+	Columns     []Column
+	Constraints []string
 }
 
 // CREATE TABLE table_name ( ... )
-type CreateTable struct {
+type CreateTableStmt struct {
+	dialect     *Dialect
 	table       *Table
 	ifNotExists bool
 }
 
-func (t *Table) Create() *CreateTable {
-	return &CreateTable{t, false}
+// TODO: Tests for CreateTable
+func CreateTable(name string) *CreateTableStmt {
+	return (&Table{Name: name}).Create()
 }
 
-func (ct *CreateTable) IfNotExists() *CreateTable {
+func (t *Table) Create() *CreateTableStmt {
+	return &CreateTableStmt{nil, t, false}
+}
+
+func (ct *CreateTableStmt) IfNotExists() *CreateTableStmt {
 	ct.ifNotExists = true
 	return ct
 }
 
-func (ct *CreateTable) Sql() string {
+func (ct *CreateTableStmt) Column(col Column) *CreateTableStmt {
+	ct.table.Columns = append(ct.table.Columns, col)
+	return ct
+}
+
+// TODO: Tests for (CreateTableStmt).Constraint
+func (ct *CreateTableStmt) Constraint(cons string) *CreateTableStmt {
+	ct.table.Constraints = append(ct.table.Constraints, cons)
+	return ct
+}
+
+// TODO: Tests for (CreateTableStmt).Dialect
+func (ct *CreateTableStmt) Dialect(dialect *Dialect) *CreateTableStmt {
+	ct.dialect = dialect
+	return ct
+}
+
+func (ct *CreateTableStmt) Sql() string {
+	dct := useDialect(ct.dialect)
 	qry := bytes.Buffer{}
 	qry.WriteString("CREATE TABLE ")
 	if ct.ifNotExists {
 		qry.WriteString("IF NOT EXISTS ")
 	}
-	qry.WriteString(ct.table.Name)
+	dct.WriteIdentifier(&qry, ct.table.Name)
 	qry.WriteString(" (")
 
 	exprs := 0
@@ -71,48 +96,54 @@ func (ct *CreateTable) Sql() string {
 		if exprs += 1; exprs > 1 {
 			qry.WriteString(", ")
 		}
-		col.WriteSql(&qry)
+		col.WriteSql(&qry, dct)
 	}
 
-	// for _, con := range ct.constraints {
-	//   if exprs += 1; exprs > 1 {
-	//     qry.WriteString(", ")
-	//   }
-	//   qry.WriteString(" ")
-	//   qry.WriteString(con)
-	// }
+	for _, con := range ct.table.Constraints {
+		if exprs += 1; exprs > 1 {
+			qry.WriteString(", ")
+		}
+		qry.WriteString(" ")
+		qry.WriteString(con)
+	}
 
 	qry.WriteString(")")
 	return qry.String()
 }
 
-func (ct *CreateTable) Args() []interface{} {
+func (ct *CreateTableStmt) Args() []interface{} {
 	return nil
 }
 
 // ALTER TABLE table_name ...
-type AlterTable struct {
+type AlterTableStmt struct {
+	dialect *Dialect
 	table   *Table
 	adds    []Column
 	actions []string
 }
 
-func (t *Table) Alter() *AlterTable {
-	return &AlterTable{t, nil, nil}
+// TODO: Tests for AlterTable
+func AlterTable(name string) *AlterTableStmt {
+	return (&Table{Name: name}).Alter()
 }
 
-func (at *AlterTable) Action(action string) *AlterTable {
+func (t *Table) Alter() *AlterTableStmt {
+	return &AlterTableStmt{nil, t, nil, nil}
+}
+
+func (at *AlterTableStmt) Action(action string) *AlterTableStmt {
 	at.actions = append(at.actions, action)
 	return at
 }
 
-func (at *AlterTable) AddColumn(col Column) *AlterTable {
+func (at *AlterTableStmt) AddColumn(col Column) *AlterTableStmt {
 	at.table.Columns = append(at.table.Columns, col)
 	at.adds = append(at.adds, col)
 	return at
 }
 
-func (at *AlterTable) DropColumn(name string) *AlterTable {
+func (at *AlterTableStmt) DropColumn(name string) *AlterTableStmt {
 	at.actions = append(at.actions, "DROP COLUMN "+name)
 	for i, col := range at.table.Columns {
 		if col.Name == name {
@@ -123,10 +154,17 @@ func (at *AlterTable) DropColumn(name string) *AlterTable {
 	return at
 }
 
-func (at *AlterTable) Sql() string {
+// TODO: Tests for (AlterTableStmt).Dialect
+func (at *AlterTableStmt) Dialect(dialect *Dialect) *AlterTableStmt {
+	at.dialect = dialect
+	return at
+}
+
+func (at *AlterTableStmt) Sql() string {
+	dct := useDialect(at.dialect)
 	qry := bytes.Buffer{}
 	qry.WriteString("ALTER TABLE ")
-	qry.WriteString(at.table.Name)
+	dct.WriteIdentifier(&qry, at.table.Name)
 	qry.WriteString(" ")
 
 	exprs := 0
@@ -135,7 +173,7 @@ func (at *AlterTable) Sql() string {
 			qry.WriteString(", ")
 		}
 		qry.WriteString("ADD COLUMN ")
-		col.WriteSql(&qry)
+		col.WriteSql(&qry, dct)
 	}
 
 	for _, action := range at.actions {
@@ -148,13 +186,15 @@ func (at *AlterTable) Sql() string {
 	return qry.String()
 }
 
-func (at *AlterTable) Args() []interface{} {
+func (at *AlterTableStmt) Args() []interface{} {
 	return nil
 }
 
 // SELECT columns ...
+// TODO: Tests for SelectStmt et al.
 // TODO: Having, GroupBy, OrderBy, Limit, Offset
-type SelectStatement struct {
+type SelectStmt struct {
+	dialect    *Dialect
 	table      string
 	selection  string
 	columns    []Column
@@ -162,31 +202,37 @@ type SelectStatement struct {
 	arguments  []interface{}
 }
 
-func Select(columns string) *SelectStatement {
-	return &SelectStatement{"", columns, nil, nil, nil}
+func Select(columns string) *SelectStmt {
+	return &SelectStmt{nil, "", columns, nil, nil, nil}
 }
 
-func SelectColumns(columns []Column) *SelectStatement {
-	return &SelectStatement{"", "", columns, nil, nil}
+func SelectColumns(columns []Column) *SelectStmt {
+	return &SelectStmt{nil, "", "", columns, nil, nil}
 }
 
-func (ss *SelectStatement) From(table string) *SelectStatement {
+func (ss *SelectStmt) Dialect(dialect *Dialect) *SelectStmt {
+	ss.dialect = dialect
+	return ss
+}
+
+func (ss *SelectStmt) From(table string) *SelectStmt {
 	ss.table = table
 	return ss
 }
 
-func (ss *SelectStatement) FromTable(table Table) *SelectStatement {
+func (ss *SelectStmt) FromTable(table Table) *SelectStmt {
 	ss.table = table.Name
 	return ss
 }
 
-func (ss *SelectStatement) Where(condition string, args ...interface{}) *SelectStatement {
+func (ss *SelectStmt) Where(condition string, args ...interface{}) *SelectStmt {
 	ss.conditions = append(ss.conditions, condition)
 	ss.arguments = append(ss.arguments, args...)
 	return ss
 }
 
-func (ss *SelectStatement) Sql() string {
+func (ss *SelectStmt) Sql() string {
+	dct := useDialect(ss.dialect)
 	qry := bytes.Buffer{}
 	qry.WriteString("SELECT ")
 	if len(ss.columns) > 0 {
@@ -194,7 +240,7 @@ func (ss *SelectStatement) Sql() string {
 			if i > 0 {
 				qry.WriteString(", ")
 			}
-			qry.WriteString(col.Name)
+			dct.WriteIdentifier(&qry, col.Name)
 		}
 	} else {
 		qry.WriteString(ss.selection)
@@ -216,7 +262,7 @@ func (ss *SelectStatement) Sql() string {
 	return qry.String()
 }
 
-func (ss *SelectStatement) Args() []interface{} {
+func (ss *SelectStmt) Args() []interface{} {
 	return ss.arguments
 }
 
@@ -231,6 +277,7 @@ const (
 	// ColumnsOnlyTagged
 )
 
+// TODO: Tests for Columns
 func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 	typ := reflect.TypeOf(structValue)
 	if typ.Kind() != reflect.Struct {
