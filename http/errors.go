@@ -48,7 +48,8 @@ func mustMakeErrorBody(errmsg string) string {
 	return string(bodyBytes)
 }
 
-// Error sets Reflexion-Request-Errors and renders the errors json body
+// Error sets the header to the value of HeaderRequestErrors (eg. "Request-Errors")
+// and renders the errors in a json body
 func Error(r *router.Response, status int, errmsg string) {
 	if len(HeaderRequestErrors) > 0 {
 		header := mustMakeErrorHeader(errmsg)

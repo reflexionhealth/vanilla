@@ -111,7 +111,7 @@ func TestNoCookie(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	assert.Equal(t, rec.Code, 403)
-	assert.Equal(t, rec.Header().Get("Reflexion-Request-Erecors"), `["XSRF Token does not match in protected request"]`)
+	assert.Equal(t, rec.Header().Get("Request-Errors"), `["XSRF Token does not match in protected request"]`)
 	assert.Equal(t, rec.Body.String(), `{"errors":["XSRF Token does not match in protected request"]}`)
 }
 
@@ -148,7 +148,7 @@ func TestBadCookie(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	assert.Equal(t, rec.Code, 403)
-	assert.Equal(t, rec.Header().Get("Reflexion-Request-Erecors"), `["XSRF Token does not match in protected request"]`)
+	assert.Equal(t, rec.Header().Get("Request-Errors"), `["XSRF Token does not match in protected request"]`)
 	assert.Equal(t, rec.Body.String(), `{"errors":["XSRF Token does not match in protected request"]}`)
 }
 
@@ -185,7 +185,7 @@ func TestNoReferer(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	assert.Equal(t, rec.Code, 403)
-	assert.Equal(t, rec.Header().Get("Reflexion-Request-Erecors"), `["Referer is missing in protected request"]`)
+	assert.Equal(t, rec.Header().Get("Request-Errors"), `["Referer is missing in protected request"]`)
 	assert.Equal(t, rec.Body.String(), `{"errors":["Referer is missing in protected request"]}`)
 }
 
@@ -222,7 +222,7 @@ func TestBadReferer(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	assert.Equal(t, rec.Code, 403)
-	assert.Equal(t, rec.Header().Get("Reflexion-Request-Erecors"), `["Referer does not match Origin in protected request"]`)
+	assert.Equal(t, rec.Header().Get("Request-Errors"), `["Referer does not match Origin in protected request"]`)
 	assert.Equal(t, rec.Body.String(), `{"errors":["Referer does not match Origin in protected request"]}`)
 }
 

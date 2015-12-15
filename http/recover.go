@@ -45,7 +45,7 @@ func Recover(c *router.Context) {
 
 			if !c.Response.Rendered() {
 				c.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
-				c.Response.Header().Set("Reflexion-Request-Errors", "[\"Something went wrong\"]")
+				c.Response.Header().Set(HeaderRequestErrors, "[\"Something went wrong\"]")
 				c.Response.JSON(500, "{\"errors\":[\"Something went wrong\"]}")
 			} else {
 				Logger.Logf(c, "\n  Panic occured after write: error not included in response\n")
