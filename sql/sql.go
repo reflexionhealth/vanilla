@@ -120,6 +120,7 @@ type AlterTableStmt struct {
 	dialect *Dialect
 	table   *Table
 	adds    []Column
+	drops   []string
 	actions []string
 }
 
@@ -129,7 +130,7 @@ func AlterTable(name string) *AlterTableStmt {
 }
 
 func (t *Table) Alter() *AlterTableStmt {
-	return &AlterTableStmt{nil, t, nil, nil}
+	return &AlterTableStmt{nil, t, nil, nil, nil}
 }
 
 func (at *AlterTableStmt) Action(action string) *AlterTableStmt {
@@ -144,7 +145,7 @@ func (at *AlterTableStmt) AddColumn(col Column) *AlterTableStmt {
 }
 
 func (at *AlterTableStmt) DropColumn(name string) *AlterTableStmt {
-	at.actions = append(at.actions, "DROP COLUMN "+name)
+	at.drops = append(at.drops, name)
 	for i, col := range at.table.Columns {
 		if col.Name == name {
 			at.table.Columns = append(at.table.Columns[:i], at.table.Columns[i+1:]...)
@@ -168,12 +169,21 @@ func (at *AlterTableStmt) Sql() string {
 	qry.WriteString(" ")
 
 	exprs := 0
+
 	for _, col := range at.adds {
 		if exprs += 1; exprs > 1 {
 			qry.WriteString(", ")
 		}
 		qry.WriteString("ADD COLUMN ")
 		col.WriteSql(&qry, dct)
+	}
+
+	for _, name := range at.drops {
+		if exprs += 1; exprs > 1 {
+			qry.WriteString(", ")
+		}
+		qry.WriteString("DROP COLUMN ")
+		dct.WriteIdentifier(&qry, name)
 	}
 
 	for _, action := range at.actions {
