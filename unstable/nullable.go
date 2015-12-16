@@ -121,11 +121,11 @@ func (nd *NullDate) Scan(src interface{}) error {
 }
 
 // Implement sql.driver.Valuer interface
-func (nd NullDate) Valuer() (driver.Value, error) {
+func (nd NullDate) Value() (driver.Value, error) {
 	if !nd.Valid {
 		return nil, nil
 	} else {
-		return nd.Date.Valuer()
+		return nd.Date.Value()
 	}
 }
 

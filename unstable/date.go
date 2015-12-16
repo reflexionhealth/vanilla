@@ -72,7 +72,7 @@ func (d Date) Scan(src interface{}) error {
 }
 
 // Implement sql.driver.Valuer interface
-func (d Date) Valuer() (driver.Value, error) {
+func (d Date) Value() (driver.Value, error) {
 	return d.BeginningOfDay(time.UTC), nil
 }
 
