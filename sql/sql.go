@@ -2,11 +2,12 @@
 // in Golang more natural. The primary use is building dynamic queries from
 // from in-memory data structures and other data sources.
 //
-// Non-goals:
-//  * Wrapping or abstracting the existing SQL library
-//  * Replacing simple hard-coded queries, eg:
-//      DON'T: Select({"username"}).From("users").Sql()
-//      DO: `SELECT username FROM users`
+// The package is not intended to wrap or abstract Go's existing sql package.
+// Additionaly, it is not intended to replace simple hard-coded queries.
+// If you know what you want before compile-time, just type it!
+//
+//   DO: `SELECT username FROM users`
+//   DONT: Select({"username"}).From("users").Sql()
 //
 package sql
 
