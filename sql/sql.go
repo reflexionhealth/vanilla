@@ -13,7 +13,9 @@ package sql
 import (
 	"bytes"
 	"reflect"
+	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type Sqler interface {
@@ -279,10 +281,10 @@ func (ss *SelectStmt) Args() []interface{} {
 type ColumnsFlag int
 
 const (
-	ColumnNamesSnakecase ColumnsFlag = 1 << iota
-	// ColumnNamesLowercase
-	// ColumnNamesCamelcase
-	// ColumnNamesPascalcase
+	ColumnNamesCamelcase ColumnsFlag = 1 << iota
+	ColumnNamesLowercase
+	ColumnNamesPascalcase
+	ColumnNamesSnakecase
 	ColumnsOnlyExported
 	// ColumnsOnlyTagged
 )
@@ -302,11 +304,7 @@ func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 			continue
 		}
 
-		if flags&ColumnNamesSnakecase != 0 {
-			columns = append(columns, Column{Name: snakecase(fld.Name)})
-		} else {
-			columns = append(columns, Column{Name: fld.Name})
-		}
+		columns = append(columns, Column{Name: inflect(fld.Name, flags)})
 	}
 
 	return columns, nil
@@ -327,11 +325,7 @@ func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
 			continue
 		}
 
-		if flags&ColumnNamesSnakecase != 0 {
-			columns = append(columns, snakecase(fld.Name))
-		} else {
-			columns = append(columns, fld.Name)
-		}
+		columns = append(columns, inflect(fld.Name, flags))
 	}
 
 	return columns, nil
@@ -339,20 +333,34 @@ func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
 
 func inflect(input string, flags ColumnsFlag) string {
 	switch {
-		case flags&ColumnNamesCamelcase != 0:
-		case flags&ColumnNamesLowercase != 0:
-		case flags&ColumnNamesPascalcase != 0:
-			return pascalcase(input)
-		case flags&ColumnNamesSnakecase != 0:
-			return snakecase(input)
-		default:
-			return input
+	case flags&ColumnNamesCamelcase != 0:
+		return camelcase(input)
+	case flags&ColumnNamesLowercase != 0:
+		return strings.ToLower(input)
+	case flags&ColumnNamesPascalcase != 0:
+		return pascalcase(input)
+	case flags&ColumnNamesSnakecase != 0:
+		return snakecase(input)
+	default:
+		return input
 	}
+}
 
-	if flags&ColumnNamesSnakecase != 0 {
-		columns = append(columns, snakecase(fld.Name))
+func camelcase(input string) string {
+	r, size := utf8.DecodeRuneInString(input)
+	if unicode.IsUpper(r) {
+		return string(unicode.ToLower(r)) + input[size:]
 	} else {
-		columns = append(columns, fld.Name)
+		return input
+	}
+}
+
+func pascalcase(input string) string {
+	r, size := utf8.DecodeRuneInString(input)
+	if unicode.IsLower(r) {
+		return string(unicode.ToUpper(r)) + input[size:]
+	} else {
+		return input
 	}
 }
 
