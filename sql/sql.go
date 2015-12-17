@@ -18,11 +18,17 @@ import (
 	"unicode/utf8"
 )
 
+// Sqler is the interface for SQL expression builders
 type Sqler interface {
+	// Sql should build and return the SQL string representation of the expression
 	Sql() string
+
+	// Args returns the literal values provided to the builder as a slice that
+	// can be passed to db.Exec or db.Query with the spread "..." operator
 	Args() []interface{}
 }
 
+// Column is a Go representation of a single column in a table
 type Column struct {
 	Name        string
 	Type        string
@@ -39,13 +45,17 @@ func (c *Column) WriteSql(buf *bytes.Buffer, dct *Dialect) {
 	}
 }
 
+// Table is a Go representation of a single table in a database
 type Table struct {
 	Name        string
 	Columns     []Column
 	Constraints []string
 }
 
-// CREATE TABLE table_name ( ... )
+// CreateTableStmt is an expression builder for statements of the form:
+//
+//   CREATE TABLE table_name ( ... )"
+//
 type CreateTableStmt struct {
 	dialect     *Dialect
 	table       *Table
@@ -117,7 +127,10 @@ func (ct *CreateTableStmt) Args() []interface{} {
 	return nil
 }
 
-// ALTER TABLE table_name ...
+// AlterTableStmt is an expression builder for statements of the form:
+//
+//   ALTER TABLE table_name ...
+//
 type AlterTableStmt struct {
 	dialect *Dialect
 	table   *Table
@@ -202,7 +215,11 @@ func (at *AlterTableStmt) Args() []interface{} {
 	return nil
 }
 
-// SELECT columns ...
+
+// SelectStmt is an expression builder for statements of the form:
+//
+//   SELECT columns FROM table ...
+//
 // TODO: Tests for SelectStmt et al.
 // TODO: Having, GroupBy, OrderBy, Limit, Offset
 type SelectStmt struct {
@@ -278,23 +295,43 @@ func (ss *SelectStmt) Args() []interface{} {
 	return ss.arguments
 }
 
+// A ColumnsFlag is a flag which controls how Columns and ColumnNames interpret
+// struct fields as columns.
 type ColumnsFlag int
 
+// If no ColumnNames flag is passed, column names will match the field names
 const (
+	// ColumnNamesCamelcase downcases the first character of the field name
 	ColumnNamesCamelcase ColumnsFlag = 1 << iota
+
+	// ColumnNamesLowercase downcases all characters of the field name
 	ColumnNamesLowercase
+
+	// ColumnNamesPascalcase upcases the first character of the field name
 	ColumnNamesPascalcase
+
+	// ColumnNamesSnakecase downcases all characters of the field name, inserting
+	// an underscore before each word (other than first).
+	// It does not try to detect common initialisms
 	ColumnNamesSnakecase
+
+	// ColumnsOnlyExported skips fields that are unexported (first character uppercase)
 	ColumnsOnlyExported
-	// ColumnsOnlyTagged
+
+	// ColumnsOnlyExported only outputs columns for fields with the "sql" tag
+	//ColumnsOnlyTagged
 )
 
-// TODO: Tests for Columns
+// Columns uses the reflect package to inspect a struct value and returns
+// a slice of columns for the struct's fields. It accepts the ColumnsFlag
+// flags to control what fields and names are returned.
+//
+// For a plain []string, see the ColumnNames function
 func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 	typ := reflect.TypeOf(structValue)
 	if typ.Kind() != reflect.Struct {
 		// needless runtime sacrifice to the gods of type safety
-		return nil, &reflect.ValueError{"ColumnsFor", typ.Kind()}
+		return nil, &reflect.ValueError{"Columns", typ.Kind()}
 	}
 
 	var columns []Column
@@ -310,12 +347,14 @@ func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 	return columns, nil
 }
 
-// TODO: Tests for ColumnNames
+// ColumnNames uses the reflect package to inspect a struct value and returns
+// a slice of the column names for the struct's fields. It accepts the ColumnsFlag
+// flags to control what fields and names are returned.
 func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
 	typ := reflect.TypeOf(structValue)
 	if typ.Kind() != reflect.Struct {
 		// needless runtime sacrifice to the gods of type safety
-		return nil, &reflect.ValueError{"ColumnsFor", typ.Kind()}
+		return nil, &reflect.ValueError{"ColumnNames", typ.Kind()}
 	}
 
 	var columns []string

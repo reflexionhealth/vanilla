@@ -25,22 +25,22 @@ type Dialect struct {
 //
 // Other dialects provided for reference:
 //
-//     var mssql = sql.Dialect{IdentOpen: '[', IdentClose: ']', Placeholder: sql.QuestionPlaceholder}
-//     var mysql = sql.Dialect{IdentOpen: '`', IdentClose: '`', Placeholder: sql.ColonNamePlaceholder}
-//     var oracle = sql.Dialect{IdentOpen: , IdentClose: , Placeholder: sql.ColonNamePlaceholder}
-//     var postgres = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.DollarNumPlaceholder}
-//     var sqlite = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.QuestionPlaceholder}
+//     var mssql    = sql.Dialect{IdentOpen: '[', IdentClose: ']', Placeholder: sql.PlaceholderQuestion}
+//     var mysql    = sql.Dialect{IdentOpen: '`', IdentClose: '`', Placeholder: sql.PlaceholderColon}
+//     var oracle   = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.PlaceholderColon}
+//     var postgres = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.PlaceholderDollar}
+//     var sqlite   = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.PlaceholderQuestion}
 //
-var Ansi = Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: QuestionPlaceholder}
+var Ansi = Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: PlaceholderQuestion}
 
-// ColonNamePlaceholder generates placeholder names in the form `:1`, `:2`, `:3`
-func ColonNamePlaceholder(n int) string { return ":" + strconv.Itoa(n) }
+// PlaceholderColon generates placeholder names in the form :1, :2, :3
+func PlaceholderColon(n int) string { return ":" + strconv.Itoa(n) }
 
-// DollarNumPlaceholder generates placeholders names in the form "$1", "$2", "$3"
-func DollarNumPlaceholder(n int) string { return "$" + strconv.Itoa(n) }
+// PlaceholderDollar generates placeholders names in the form $1, $2, $3
+func PlaceholderDollar(n int) string { return "$" + strconv.Itoa(n) }
 
-// QuestionPlaceholder always returns the question mark "?" as a placeholder
-func QuestionPlaceholder(n int) string { return "?" }
+// PlaceholderQuestion always returns the question mark "?" as a placeholder
+func PlaceholderQuestion(n int) string { return "?" }
 
 func useDialect(dialect *Dialect) *Dialect {
 	if dialect == nil {
