@@ -312,6 +312,50 @@ func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 	return columns, nil
 }
 
+// TODO: Tests for ColumnNames
+func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
+	typ := reflect.TypeOf(structValue)
+	if typ.Kind() != reflect.Struct {
+		// needless runtime sacrifice to the gods of type safety
+		return nil, &reflect.ValueError{"ColumnsFor", typ.Kind()}
+	}
+
+	var columns []string
+	for i := 0; i < typ.NumField(); i++ {
+		fld := typ.Field(i)
+		if flags&ColumnsOnlyExported != 0 && len(fld.PkgPath) > 0 {
+			continue
+		}
+
+		if flags&ColumnNamesSnakecase != 0 {
+			columns = append(columns, snakecase(fld.Name))
+		} else {
+			columns = append(columns, fld.Name)
+		}
+	}
+
+	return columns, nil
+}
+
+func inflect(input string, flags ColumnsFlag) string {
+	switch {
+		case flags&ColumnNamesCamelcase != 0:
+		case flags&ColumnNamesLowercase != 0:
+		case flags&ColumnNamesPascalcase != 0:
+			return pascalcase(input)
+		case flags&ColumnNamesSnakecase != 0:
+			return snakecase(input)
+		default:
+			return input
+	}
+
+	if flags&ColumnNamesSnakecase != 0 {
+		columns = append(columns, snakecase(fld.Name))
+	} else {
+		columns = append(columns, fld.Name)
+	}
+}
+
 func snakecase(input string) string {
 	var output bytes.Buffer
 	for i, char := range input {

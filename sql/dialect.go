@@ -1,6 +1,7 @@
 package sql
 
 import "bytes"
+import "strconv"
 
 // Dialect contains the rules necessary to generate SQL for a specific database engine.
 // Specifying a Dialect is optional, the ANSI dialect is used by default.
@@ -15,11 +16,31 @@ import "bytes"
 //
 // TODO: Tests for Dialect et al.
 type Dialect struct {
-	IdentifierOpen  rune
-	IdentifierClose rune
+	IdentOpen   rune
+	IdentClose  rune
+	Placeholder func(n int) string
 }
 
-var Ansi = Dialect{IdentifierOpen: '"', IdentifierClose: '"'}
+// The SQL dialect defined by ANSI, using the most compatible rules among popular engines where the standard is ambiguous
+//
+// Other dialects provided for reference:
+//
+//     var mssql = sql.Dialect{IdentOpen: '[', IdentClose: ']', Placeholder: sql.QuestionPlaceholder}
+//     var mysql = sql.Dialect{IdentOpen: '`', IdentClose: '`', Placeholder: sql.ColonNamePlaceholder}
+//     var oracle = sql.Dialect{IdentOpen: , IdentClose: , Placeholder: sql.ColonNamePlaceholder}
+//     var postgres = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.DollarNumPlaceholder}
+//     var sqlite = sql.Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: sql.QuestionPlaceholder}
+//
+var Ansi = Dialect{IdentOpen: '"', IdentClose: '"', Placeholder: QuestionPlaceholder}
+
+// ColonNamePlaceholder generates placeholder names in the form `:1`, `:2`, `:3`
+func ColonNamePlaceholder(n int) string { return ":" + strconv.Itoa(n) }
+
+// DollarNumPlaceholder generates placeholders names in the form "$1", "$2", "$3"
+func DollarNumPlaceholder(n int) string { return "$" + strconv.Itoa(n) }
+
+// QuestionPlaceholder always returns the question mark "?" as a placeholder
+func QuestionPlaceholder(n int) string { return "?" }
 
 func useDialect(dialect *Dialect) *Dialect {
 	if dialect == nil {
@@ -29,15 +50,10 @@ func useDialect(dialect *Dialect) *Dialect {
 	}
 }
 
-// Not sure whether I really want to define these here
-//var MsSql = Dialect{IdentifierOpen: '[', IdentifierClose: ']'}
-//var Mysql = Dialect{IdentifierOpen: '`', IdentifierClose: '`'}
-//var Postgres = Dialect{IdentifierOpen: '"', IdentifierClose: '"'}
-
 func (d *Dialect) WriteIdentifier(buf *bytes.Buffer, ident string) {
-	buf.WriteRune(d.IdentifierOpen)
+	buf.WriteRune(d.IdentOpen)
 	buf.WriteString(ident)
-	buf.WriteRune(d.IdentifierClose)
+	buf.WriteRune(d.IdentClose)
 }
 
 func (d *Dialect) CreateTable(name string) *CreateTableStmt {
