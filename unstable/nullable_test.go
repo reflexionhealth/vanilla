@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-  "testing"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,13 +22,13 @@ func TestImplementsJsonMarshaller(t *testing.T) {
 }
 
 func TestImplementsSqlValuer(t *testing.T) {
-  var valuer driver.Valuer
-  valuer = NullDate{}
-  assert.NotNil(t, valuer)
-  valuer = NullTime{}
-  assert.NotNil(t, valuer)
-  valuer = NullString{}
-  assert.NotNil(t, valuer)
+	var valuer driver.Valuer
+	valuer = NullDate{}
+	assert.NotNil(t, valuer)
+	valuer = NullTime{}
+	assert.NotNil(t, valuer)
+	valuer = NullString{}
+	assert.NotNil(t, valuer)
 	valuer = NullInt64{}
 	assert.NotNil(t, valuer)
 }
@@ -36,11 +36,11 @@ func TestImplementsSqlValuer(t *testing.T) {
 func TestNullDateRefImplementSqlScanner(t *testing.T) {
 	var scanner sql.Scanner
 	scanner = &NullDate{}
-  assert.NotNil(t, scanner)
+	assert.NotNil(t, scanner)
 	scanner = &NullTime{}
 	assert.NotNil(t, scanner)
 	scanner = &NullString{}
-  assert.NotNil(t, scanner)
+	assert.NotNil(t, scanner)
 	scanner = &NullInt64{}
-  assert.NotNil(t, scanner)
+	assert.NotNil(t, scanner)
 }
