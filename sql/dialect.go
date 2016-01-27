@@ -71,3 +71,11 @@ func (d *Dialect) Select(selection string) *SelectStmt {
 func (d *Dialect) SelectColumns(columns []Column) *SelectStmt {
 	return SelectColumns(columns).Dialect(d)
 }
+
+func (d *Dialect) Insert(insertion string) *InsertStmt {
+	return Insert(insertion).Dialect(d)
+}
+
+func (d *Dialect) InsertColumns(columns []Column) *InsertStmt {
+	return InsertColumns(columns).Dialect(d)
+}
