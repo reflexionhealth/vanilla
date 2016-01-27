@@ -13,6 +13,7 @@ package sql
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"unicode"
@@ -51,6 +52,19 @@ type Table struct {
 	Name        string
 	Columns     []Column
 	Constraints []string
+}
+
+// A ValueCountErrors is thrown while building an Insert or Update if the number
+// of values doesn't match the number of columns.
+type ValueCountError struct {
+	Builder Sqler
+	Columns []string
+	Values  []interface{}
+}
+
+func (e *ValueCountError) Error() string {
+	builder := reflect.TypeOf(e.Builder).Elem().Name
+	return fmt.Sprintf("in %v.Values(...) expected %v values but received %v", builder, len(e.Columns), len(e.Values))
 }
 
 // CreateTableStmt is an expression builder for statements of the form:
@@ -216,7 +230,6 @@ func (at *AlterTableStmt) Args() []interface{} {
 	return nil
 }
 
-
 // SelectStmt is an expression builder for statements of the form:
 //
 //   SELECT columns FROM table ...
@@ -296,6 +309,105 @@ func (ss *SelectStmt) Args() []interface{} {
 	return ss.arguments
 }
 
+// InsertStmt is an expression builder for statements of the form:
+//
+//   INSERT INTO table (columns) VALUES (values)
+//
+// TODO: Tests for InsertStmt et al.
+type InsertStmt struct {
+	dialect   *Dialect
+	table     string
+	insertion string
+	columns   []Column
+	arguments []interface{}
+
+	values  int
+	records int
+}
+
+func Insert(columns string) *InsertStmt {
+	values := strings.Count(columns, ",") + 1
+	return &InsertStmt{nil, "", columns, nil, nil, values, 0}
+}
+
+func InsertColumns(columns []Column) *InsertStmt {
+	return &InsertStmt{nil, "", "", columns, nil, len(columns), 0}
+}
+
+func (is *InsertStmt) Dialect(dialect *Dialect) *InsertStmt {
+	is.dialect = dialect
+	return is
+}
+
+func (is *InsertStmt) Into(table string) *InsertStmt {
+	is.table = table
+	return is
+}
+
+func (is *InsertStmt) IntoTable(table Table) *InsertStmt {
+	is.table = table.Name
+	return is
+}
+
+// Values will panic with ValueCountError if the number of arguments doesn't
+// match the number of columns provided in a previous call to "columns"
+func (is *InsertStmt) Values(args ...interface{}) *InsertStmt {
+	if len(args) != is.values {
+		if len(is.columns) > 0 {
+			panic(&ValueCountError{is, ColumnsToNames(is.columns), args})
+		} else {
+			panic(&ValueCountError{is, strings.Split(is.insertion, ","), args})
+		}
+	}
+	is.arguments = append(is.arguments, args...)
+	is.records += 1
+	return is
+}
+
+func (is *InsertStmt) Sql() string {
+	dct := useDialect(is.dialect)
+	qry := bytes.Buffer{}
+	qry.WriteString("INSERT INTO ")
+	dct.WriteIdentifier(&qry, is.table)
+	qry.WriteString(" (")
+	if len(is.columns) > 0 {
+		for i, col := range is.columns {
+			if i > 0 {
+				qry.WriteString(", ")
+			}
+			dct.WriteIdentifier(&qry, col.Name)
+		}
+	} else {
+		qry.WriteString(is.insertion)
+	}
+	qry.WriteString(")")
+	if is.records > 0 {
+		argn := 0
+		qry.WriteString(" VALUES ")
+		for r := 0; r < is.records; r++ {
+			if r > 0 {
+				qry.WriteString(", (")
+			} else {
+				qry.WriteString("(")
+			}
+			for v := 0; v < is.values; v++ {
+				if v > 0 {
+					qry.WriteString(", ")
+				}
+				argn += 1
+				qry.WriteString(dct.Placeholder(argn))
+			}
+			qry.WriteString(")")
+		}
+	}
+
+	return qry.String()
+}
+
+func (is *InsertStmt) Args() []interface{} {
+	return is.arguments
+}
+
 // A ColumnsFlag is a flag which controls how Columns and ColumnNames interpret
 // struct fields as columns.
 type ColumnsFlag int
@@ -369,6 +481,15 @@ func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
 	}
 
 	return columns, nil
+}
+
+// ColumnsToNames maps an array of columns to an array of column names
+func ColumnsToNames(columns []Column) []string {
+	names := make([]string, len(columns))
+	for i, col := range columns {
+		names[i] = col.Name
+	}
+	return names
 }
 
 func inflect(input string, flags ColumnsFlag) string {
