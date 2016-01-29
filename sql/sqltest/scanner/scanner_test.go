@@ -15,7 +15,7 @@ func TestSelect(t *testing.T) {
 	}
 
 	s := Scanner{}
-	s.Init([]byte(query), failOnError)
+	s.Init([]byte(query), failOnError, ScanRuleset{})
 
 	var tokens []token.Token
 	MAX_ITER := 200 // Don't loop forever
@@ -56,7 +56,21 @@ func scanOnce(src string) (scanToken, *scanError) {
 
 	var t scanToken
 	s := Scanner{}
-	s.Init([]byte(src), handleError)
+	s.Init([]byte(src), handleError, ScanRuleset{})
+	t.pos, t.tok, t.lit = s.Scan()
+
+	return t, err
+}
+
+func scanOnceWith(src string, rules ScanRuleset) (scanToken, *scanError) {
+	var err *scanError
+	handleError := func(pos token.Position, msg string) {
+		err = &scanError{pos, msg}
+	}
+
+	var t scanToken
+	s := Scanner{}
+	s.Init([]byte(src), handleError, rules)
 	t.pos, t.tok, t.lit = s.Scan()
 
 	return t, err
@@ -70,7 +84,7 @@ func scanAll(src string) *scanError {
 
 	var t scanToken
 	s := Scanner{}
-	s.Init([]byte(src), handleError)
+	s.Init([]byte(src), handleError, ScanRuleset{})
 
 	for i := 0; i < 9999; i++ {
 		t.pos, t.tok, t.lit = s.Scan()
@@ -112,6 +126,40 @@ func TestErrorsRespectWhitespace(t *testing.T) {
 		assert.Equal(t, 3, err.pos.Line)
 		assert.Equal(t, 5, err.pos.Column)
 		assert.Equal(t, `Unexpected character U+007E '~'`, err.msg)
+	}
+}
+
+func TestScansIdentifier(t *testing.T) {
+	scan, err := scanOnce(`simple`)
+	assert.Nil(t, err)
+	assert.Equal(t, token.IDENT, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, `simple`, scan.lit)
+
+	scan, err = scanOnce("sim$ple")
+	assert.Equal(t, token.IDENT, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, `sim`, scan.lit)
+
+	scan, err = scanOnceWith("sim$ple", ScanRuleset{DollarIsLetter: true})
+	assert.Equal(t, token.IDENT, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, `sim$ple`, scan.lit)
+}
+
+func TestScansQuotedIdentifier(t *testing.T) {
+	scan, err := scanOnce(`"simple"`)
+	assert.Nil(t, err)
+	assert.Equal(t, token.QUOTED_IDENT, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, `simple`, scan.lit)
+
+	scan, err = scanOnceWith(`"simple"`, ScanRuleset{DoubleQuoteIsNotQuotemark: true})
+	if assert.NotNil(t, err) {
+		assert.Equal(t, 0, err.pos.Offset)
+		assert.Equal(t, 1, err.pos.Line)
+		assert.Equal(t, 1, err.pos.Column)
+		assert.Equal(t, `Unexpected character U+0022 '"'`, err.msg)
 	}
 }
 
@@ -469,6 +517,36 @@ func TestScansPunctuation(t *testing.T) {
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, "", scan.lit)
 
+	scan, err = scanOnce("+")
+	assert.Nil(t, err)
+	assert.Equal(t, token.PLUS, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, "", scan.lit)
+
+	scan, err = scanOnce("-")
+	assert.Nil(t, err)
+	assert.Equal(t, token.MINUS, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, "", scan.lit)
+
+	scan, err = scanOnce("/")
+	assert.Nil(t, err)
+	assert.Equal(t, token.SLASH, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, "", scan.lit)
+
+	scan, err = scanOnce(",")
+	assert.Nil(t, err)
+	assert.Equal(t, token.COMMA, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, "", scan.lit)
+
+	scan, err = scanOnce(".")
+	assert.Nil(t, err)
+	assert.Equal(t, token.PERIOD, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, "", scan.lit)
+
 	scan, err = scanOnce("*")
 	assert.Nil(t, err)
 	assert.Equal(t, token.ASTERISK, scan.tok)
@@ -531,7 +609,7 @@ func TestScanPos(t *testing.T) {
 
 	var scan scanToken
 	s := Scanner{}
-	s.Init([]byte("CREATE TABLE\n  candies\n()"), handleError)
+	s.Init([]byte("CREATE TABLE\n  candies\n()"), handleError, ScanRuleset{})
 	assert.Equal(t, token.Position{"", 0, 1, 1}, s.Pos())
 	assert.Nil(t, err)
 

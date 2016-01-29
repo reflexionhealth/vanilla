@@ -16,18 +16,6 @@ func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9'
 }
 
-func digitValue(ch rune) int {
-	switch {
-	case '0' <= ch && ch <= '9':
-		return int(ch - '0')
-	case 'a' <= ch && ch <= 'f':
-		return int(ch - 'a' + 10)
-	case 'A' <= ch && ch <= 'F':
-		return int(ch - 'A' + 10)
-	}
-	return 16 // larger than any legal digit val
-}
-
 // An ErrorHandler may be provided to Scanner.Init. If a syntax error is
 // encountered and a handler was installed, the handler is called with a
 // position and an error message. The position points to the beginning of
@@ -36,11 +24,11 @@ type ErrorHandler func(pos token.Position, msg string)
 
 // A ScanRuleset specifies the dialect specific tokenizing rules for a SQL dialect
 type ScanRuleset struct {
-	BacktickIsQuotemark    bool
-	DoubleQuoteIsQuotemark bool
-	BracketsAreQuotes      bool
+	BracketsAreQuotes         bool
+	BacktickIsQuotemark       bool
+	DoubleQuoteIsNotQuotemark bool
 
-	DollarisLetter bool
+	DollarIsLetter bool
 
 	// CStyleComment bool
 	// CStyleEscapeSeq bool
@@ -73,9 +61,10 @@ type Scanner struct {
 //
 // Note that Init may call err if there is an error in the first character
 // of the file.
-func (s *Scanner) Init(src []byte, err ErrorHandler) {
+func (s *Scanner) Init(src []byte, err ErrorHandler, rules ScanRuleset) {
 	s.src = src
 	s.err = err
+	s.rules = rules
 
 	s.char = ' '
 	s.offset = 0
@@ -126,12 +115,12 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 		// 	s.scanComment()
 		// 	goto scanAgain
 		case '"':
-			if s.rules.DoubleQuoteIsQuotemark {
-				tok, lit = s.scanQuotedIdentifier('"')
-			} else {
+			if s.rules.DoubleQuoteIsNotQuotemark {
 				s.error(pos, fmt.Sprintf("Unexpected character %#U", ch))
 				tok = token.INVALID
 				lit = string(ch)
+			} else {
+				tok, lit = s.scanQuotedIdentifier('"')
 			}
 		case '`':
 			if s.rules.BacktickIsQuotemark {
@@ -263,7 +252,7 @@ func (s *Scanner) skipWhitespace() {
 
 func (s *Scanner) scanIdentifier() string {
 	offset := s.offset
-	for isLetter(s.char) || isDigit(s.char) || (s.char == '$' && s.rules.DollarisLetter) {
+	for isLetter(s.char) || isDigit(s.char) || (s.char == '$' && s.rules.DollarIsLetter) {
 		s.next()
 	}
 
