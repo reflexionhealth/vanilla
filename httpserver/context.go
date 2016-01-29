@@ -6,7 +6,6 @@ package httpserver
 // Modifications by Kevin Stenerson for Reflexion Health Inc. Copyright 2015
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -18,26 +17,37 @@ type Context struct {
 	Params   Params                 // Params from the path (eg. /thing/:id)
 	Locals   map[string]interface{} // Local values set by middleware
 
-	handlers     HandlersChain
-	handlerIndex int8
+	handlers         HandlersChain
+	nextHandler      HandlerFunc
+	nextHandlerIndex int8
 }
 
-// Continue should be used only inside middleware.
-// It executes the next Handler in the chain.
-func (c *Context) Continue() {
-	c.handlerIndex++
-	if c.handlerIndex < int8(len(c.handlers)) {
-		c.handlers[c.handlerIndex](c)
-	} else {
-		fmt.Errorf("Called Continue() but there are no more handlers to execute")
+// ContinueRequest asks the server to call the next handler for this request
+// after the current handler function has returned.  This should be preferred
+// over PerformRequest().Now() because it keeps the program stack simpler.
+func (c *Context) ContinueRequest() {
+	if c.nextHandler == nil && c.nextHandlerIndex < int8(len(c.handlers)) {
+		c.nextHandler = c.handlers[c.nextHandlerIndex]
+		c.nextHandlerIndex += 1
 	}
 }
 
-// MustContinue should be used only inside middleware.
-// It is like Continue, but it skips bounds checking
-func (c *Context) MustContinue() {
-	c.handlerIndex++
-	c.handlers[c.handlerIndex](c)
+// PerformRequest is used to handle the request immediately.
+// It can be used instead of ContinueRequest when it must perform logic after
+// the normal request handler has run.  If neither method is called, then the
+// server does not run any more request handlers.
+//
+// PerformRequest should be used to initiate the request for the first time;
+// if there are no handlers when PerformRequest is called, Go will panic with
+// an index out of range runtime error.
+func (c *Context) PerformRequest() {
+	c.nextHandler = c.handlers[c.nextHandlerIndex]
+	c.nextHandlerIndex += 1
+	for c.nextHandler != nil {
+		handler := c.nextHandler
+		c.nextHandler = nil
+		handler(c)
+	}
 }
 
 // Clear resets the context so it can be used by another request
@@ -48,7 +58,8 @@ func (c *Context) Clear(res http.ResponseWriter) {
 	c.Locals = nil
 
 	c.handlers = nil
-	c.handlerIndex = -1
+	c.nextHandler = nil
+	c.nextHandlerIndex = 0
 }
 
 // ClientIP implements a best effort algorithm to return the real client IP, it parses

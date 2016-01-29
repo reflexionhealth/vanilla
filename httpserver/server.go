@@ -196,7 +196,7 @@ func (s *Server) handleHTTPRequest(c *Context) {
 			if handlers != nil {
 				c.handlers = handlers
 				c.Params = params
-				c.MustContinue() // Execute the handler chain
+				c.PerformRequest()
 				if !c.Response.Rendered() {
 					c.Response.HEAD(200)
 				}
@@ -215,7 +215,7 @@ func (s *Server) handleHTTPRequest(c *Context) {
 					c.handlers = s.noMethodHandlers
 					c.Params = c.Params[0:0]
 					c.Response.status = 405
-					c.Continue() // Execute the handler chain
+					c.PerformRequest()
 					if !c.Response.Rendered() {
 						c.Response.Text(405, "No Method")
 					}
@@ -229,7 +229,7 @@ func (s *Server) handleHTTPRequest(c *Context) {
 		c.handlers = s.notFoundHandlers
 		c.Params = c.Params[0:0]
 		c.Response.status = 404
-		c.Continue() // Execute the handler chain
+		c.PerformRequest()
 	}
 
 	if !c.Response.Rendered() {

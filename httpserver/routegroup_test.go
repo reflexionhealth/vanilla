@@ -42,14 +42,14 @@ func TestRouteGroupBasicHandle(t *testing.T) {
 
 func performRequestInGroup(t *testing.T, method string) {
 	server := New()
-	v1 := server.Group("v1", func(c *Context) { c.Continue() })
+	v1 := server.Group("v1", func(c *Context) { c.PerformRequest() })
 	assert.Equal(t, v1.BasePath(), "/v1")
 
-	login := v1.Group("/login/", func(c *Context) { c.Continue() }, func(c *Context) { c.Continue() })
+	login := v1.Group("/login/", func(c *Context) { c.PerformRequest() }, func(c *Context) { c.PerformRequest() })
 	assert.Equal(t, login.BasePath(), "/v1/login/")
 
 	handler := func(c *Context) {
-		text := fmt.Sprintf("the method was %s and index %d", c.Request.Method, c.handlerIndex)
+		text := fmt.Sprintf("the method was %s and index %d", c.Request.Method, c.nextHandlerIndex)
 		c.Response.Text(400, text)
 		fmt.Errorf("Why?!")
 	}
@@ -80,13 +80,13 @@ func performRequestInGroup(t *testing.T, method string) {
 		panic("unknown method")
 	}
 
-	w := request.PerformRequest(server, method, "/v1/login/test")
+	w := request.Perform(server, method, "/v1/login/test")
 	assert.Equal(t, 400, w.Code)
-	assert.Equal(t, "the method was "+method+" and index 3", w.Body.String())
+	assert.Equal(t, "the method was "+method+" and index 4", w.Body.String())
 
-	w = request.PerformRequest(server, method, "/v1/test")
+	w = request.Perform(server, method, "/v1/test")
 	assert.Equal(t, 400, w.Code)
-	assert.Equal(t, "the method was "+method+" and index 1", w.Body.String())
+	assert.Equal(t, "the method was "+method+" and index 2", w.Body.String())
 }
 
 func TestRouteGroupBadMethod(t *testing.T) {

@@ -28,6 +28,6 @@ func CommonHeaders(serverName string) httpserver.HandlerFunc {
 		// SERVER INFO
 		header.Set(HeaderServer, serverName)
 
-		c.Continue()
+		c.ContinueRequest()
 	}
 }

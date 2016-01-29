@@ -27,7 +27,7 @@ func TestPanicInHandler(t *testing.T) {
 	})
 
 	// RUN
-	w := request.PerformRequest(r, "GET", "/recovery")
+	w := request.Perform(r, "GET", "/recovery")
 
 	// TEST
 	assert.Equal(t, w.Code, 500)

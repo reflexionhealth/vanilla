@@ -53,8 +53,9 @@ func Recover(c *httpserver.Context) {
 		}
 	}()
 
-	// Call the next handler
-	c.MustContinue() // only use MustContinue for performance critical middleware
+	// Use PerfomRequest instead of ContinueRequest so that any errors that may
+	// occur are wrapped by our defer and recover.
+	c.PerformRequest()
 }
 
 // stack returns a nicely formated stack frame, skipping "skip" frames

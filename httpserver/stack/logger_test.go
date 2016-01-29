@@ -27,32 +27,32 @@ func TestLogger(t *testing.T) {
 	server.NoMethod(LogRequest, func(c *httpserver.Context) {})
 	server.NotFound(LogRequest, func(c *httpserver.Context) {})
 
-	request.PerformRequest(server, "GET", "/example")
+	request.Perform(server, "GET", "/example")
 	assert.Contains(t, buffer.String(), "200")
 	assert.Contains(t, buffer.String(), "GET")
 	assert.Contains(t, buffer.String(), "/example")
 
-	request.PerformRequest(server, "POST", "/example")
+	request.Perform(server, "POST", "/example")
 	assert.Contains(t, buffer.String(), "200")
 	assert.Contains(t, buffer.String(), "POST")
 	assert.Contains(t, buffer.String(), "/example")
 
-	request.PerformRequest(server, "HEAD", "/example")
+	request.Perform(server, "HEAD", "/example")
 	assert.Contains(t, buffer.String(), "200")
 	assert.Contains(t, buffer.String(), "HEAD")
 	assert.Contains(t, buffer.String(), "/example")
 
-	request.PerformRequest(server, "OPTIONS", "/example")
+	request.Perform(server, "OPTIONS", "/example")
 	assert.Contains(t, buffer.String(), "200")
 	assert.Contains(t, buffer.String(), "OPTIONS")
 	assert.Contains(t, buffer.String(), "/example")
 
-	request.PerformRequest(server, "PUT", "/nomethod")
+	request.Perform(server, "PUT", "/nomethod")
 	assert.Contains(t, buffer.String(), "405")
 	assert.Contains(t, buffer.String(), "PUT")
 	assert.Contains(t, buffer.String(), "/nomethod")
 
-	request.PerformRequest(server, "GET", "/notfound")
+	request.Perform(server, "GET", "/notfound")
 	assert.Contains(t, buffer.String(), "404")
 	assert.Contains(t, buffer.String(), "GET")
 	assert.Contains(t, buffer.String(), "/notfound")

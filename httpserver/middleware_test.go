@@ -17,16 +17,21 @@ func TestMiddlewareGeneralCase(t *testing.T) {
 	server := New()
 	server.Use(func(c *Context) {
 		signature += "A"
-		c.Continue()
+		c.PerformRequest()
 		signature += "B"
 	})
 	server.Use(func(c *Context) {
 		signature += "C"
-		c.Continue()
+		c.ContinueRequest()
 		signature += "D"
 	})
-	server.GET("/", func(c *Context) {
+	server.Use(func(c *Context) {
 		signature += "E"
+		c.PerformRequest()
+		signature += "F"
+	})
+	server.GET("/", func(c *Context) {
+		signature += "G"
 	})
 	server.NotFound(func(c *Context) {
 		signature += " X "
@@ -34,12 +39,13 @@ func TestMiddlewareGeneralCase(t *testing.T) {
 	server.NoMethod(func(c *Context) {
 		signature += " XX "
 	})
+
 	// RUN
-	w := request.PerformRequest(server, "GET", "/")
+	w := request.Perform(server, "GET", "/")
 
 	// TEST
 	assert.Equal(t, w.Code, 200)
-	assert.Equal(t, signature, "ACEDB")
+	assert.Equal(t, signature, "ACDEGFB")
 }
 
 func TestMiddlewareNotFound(t *testing.T) {
@@ -47,35 +53,36 @@ func TestMiddlewareNotFound(t *testing.T) {
 	server := New()
 	server.Use(func(c *Context) {
 		signature += "A"
-		c.Continue()
+		c.ContinueRequest()
 		signature += "B"
 	})
 	server.Use(func(c *Context) {
 		signature += "C"
-		c.Continue()
-		c.Continue() // we can call Continue (not MustContinue) as much as we want
-		c.Continue() // we can call Continue (not MustContinue) as much as we want
-		c.Continue() // we can call Continue (not MustContinue) as much as we want
+		c.ContinueRequest()
+		c.ContinueRequest() // we can call Continue (not MustContinue) as much as we want
+		c.ContinueRequest() // we can call Continue (not MustContinue) as much as we want
+		c.ContinueRequest() // we can call Continue (not MustContinue) as much as we want
 		signature += "D"
 	})
 	server.NotFound(func(c *Context) {
 		signature += "E"
-		c.Continue()
+		c.PerformRequest()
 		signature += "F"
 	}, func(c *Context) {
 		signature += "G"
-		c.Continue()
+		c.ContinueRequest()
 		signature += "H"
 	})
 	server.NoMethod(func(c *Context) {
 		signature += " X "
 	})
+
 	// RUN
-	w := request.PerformRequest(server, "GET", "/")
+	w := request.Perform(server, "GET", "/")
 
 	// TEST
 	assert.Equal(t, w.Code, 404)
-	assert.Equal(t, signature, "ACEGHFDB")
+	assert.Equal(t, signature, "ABCDEGHF")
 }
 
 func TestMiddlewareNoMethodEnabled(t *testing.T) {
@@ -83,21 +90,21 @@ func TestMiddlewareNoMethodEnabled(t *testing.T) {
 	server := New()
 	server.Use(func(c *Context) {
 		signature += "A"
-		c.Continue()
+		c.ContinueRequest()
 		signature += "B"
 	})
 	server.Use(func(c *Context) {
 		signature += "C"
-		c.Continue()
+		c.ContinueRequest()
 		signature += "D"
 	})
 	server.NoMethod(func(c *Context) {
 		signature += "E"
-		c.Continue()
+		c.PerformRequest()
 		signature += "F"
 	}, func(c *Context) {
 		signature += "G"
-		c.Continue()
+		c.ContinueRequest()
 		signature += "H"
 	})
 	server.NotFound(func(c *Context) {
@@ -106,12 +113,13 @@ func TestMiddlewareNoMethodEnabled(t *testing.T) {
 	server.POST("/", func(c *Context) {
 		signature += " XX "
 	})
+
 	// RUN
-	w := request.PerformRequest(server, "GET", "/")
+	w := request.Perform(server, "GET", "/")
 
 	// TEST
 	assert.Equal(t, w.Code, 405)
-	assert.Equal(t, signature, "ACEGHFDB")
+	assert.Equal(t, signature, "ABCDEGHF")
 }
 
 func TestMiddlewareWrite(t *testing.T) {
@@ -123,7 +131,7 @@ func TestMiddlewareWrite(t *testing.T) {
 		c.Response.JSON(444, map[string]string{"foo": "bar"})
 	})
 
-	w := request.PerformRequest(server, "GET", "/")
+	w := request.Perform(server, "GET", "/")
 
 	assert.Equal(t, w.Code, 333)
 	assert.Equal(t, w.Body.String(), "hola\n")

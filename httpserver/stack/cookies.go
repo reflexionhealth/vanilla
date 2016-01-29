@@ -100,7 +100,7 @@ func ProtectCookies(key []byte) httpserver.HandlerFunc {
 		// set the Vary: Cookie header to protect clients from caching the response
 		c.Response.Header().Add("Vary", "Cookie")
 
-		c.Continue()
+		c.ContinueRequest()
 	}
 }
 

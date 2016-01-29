@@ -120,9 +120,9 @@ func LogRequest(c *httpserver.Context) {
 	}
 
 	// Handle request
-	c.MustContinue() // only use MustContinue for performance critical middleware
+	c.PerformRequest()
 
-	// Log postambole
+	// Log postamble
 	end := time.Now()
 	latency := end.Sub(start)
 	statusCode := c.Response.Status()
