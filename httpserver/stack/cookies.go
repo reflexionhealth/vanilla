@@ -1,4 +1,4 @@
-package http
+package stack
 
 // This file is Copyright 2015 Matt Silverlock (matt@eatsleeprepeat.net).  All rights reserved.
 // Use of this source code is governed by a BSD style license.
@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/gorilla/securecookie"
-	"github.com/reflexionhealth/vanilla/router"
+	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 var safeMethods = []string{"GET", "HEAD", "OPTIONS", "TRACE"}
 
 // MustEncryptCookie sets a cookie value for a secure session
-func MustEncryptCookie(c *router.Context, maxAge int, name string, value interface{}) {
+func MustEncryptCookie(c *httpserver.Context, maxAge int, name string, value interface{}) {
 	cookieJar := c.MustGetLocal(LocalCookies).(*securecookie.SecureCookie)
 	encoded, err := cookieJar.Encode(CookieRealToken, value)
 	if err != nil {
@@ -49,13 +49,13 @@ func MustEncryptCookie(c *router.Context, maxAge int, name string, value interfa
 }
 
 // ProtectCookies provides cookie storage with XSRF Protection
-func ProtectCookies(key []byte) router.HandlerFunc {
+func ProtectCookies(key []byte) httpserver.HandlerFunc {
 	if len(key) != 96 {
 		panic("key must be 96 bytes")
 	}
 
 	cookieJar := securecookie.New(key[:64], key[64:])
-	return func(c *router.Context) {
+	return func(c *httpserver.Context) {
 		c.SetLocal(LocalCookies, cookieJar)
 
 		// get or create token

@@ -1,4 +1,4 @@
-package router
+package httpserver
 
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
@@ -11,12 +11,12 @@ import (
 	"regexp"
 )
 
-// RouteGroup is used internally to configure a router, a RouteGroup is
+// RouteGroup is used internally to configure a server, a RouteGroup is
 // associated with a prefix and an array of handlers (middleware)
 type RouteGroup struct {
+	server   *Server
 	Handlers HandlersChain
 	basePath string
-	router   *Router
 	root     bool
 }
 
@@ -26,13 +26,13 @@ func (group *RouteGroup) Use(middleware ...HandlerFunc) RouteHandler {
 	return group.returnObj()
 }
 
-// Group creates a new router group. You should add all the routes that have common middlwares or the same path prefix.
+// Group creates a new server group. You should add all the routes that have common middlwares or the same path prefix.
 // For example, all the routes that use a common middlware for authorization could be grouped.
 func (group *RouteGroup) Group(relativePath string, handlers ...HandlerFunc) *RouteGroup {
 	return &RouteGroup{
 		Handlers: group.appendHandlers(handlers),
 		basePath: group.absolutePath(relativePath),
-		router:   group.router,
+		server:   group.server,
 	}
 }
 
@@ -43,7 +43,7 @@ func (group *RouteGroup) BasePath() string {
 func (group *RouteGroup) handle(httpMethod, relativePath string, handlers HandlersChain) RouteHandler {
 	absolutePath := group.absolutePath(relativePath)
 	handlers = group.appendHandlers(handlers)
-	group.router.addRoute(httpMethod, absolutePath, handlers)
+	group.server.addRoute(httpMethod, absolutePath, handlers)
 	return group.returnObj()
 }
 
@@ -63,37 +63,37 @@ func (group *RouteGroup) Handle(httpMethod, relativePath string, handlers ...Han
 	return group.handle(httpMethod, relativePath, handlers)
 }
 
-// Get is a shortcut for router.Handle("GET", path, handle)
+// Get is a shortcut for server.Handle("GET", path, handle)
 func (group *RouteGroup) GET(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("GET", relativePath, handlers)
 }
 
-// Post is a shortcut for router.Handle("POST", path, handle)
+// Post is a shortcut for server.Handle("POST", path, handle)
 func (group *RouteGroup) POST(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("POST", relativePath, handlers)
 }
 
-// Delete is a shortcut for router.Handle("DELETE", path, handle)
+// Delete is a shortcut for server.Handle("DELETE", path, handle)
 func (group *RouteGroup) DELETE(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("DELETE", relativePath, handlers)
 }
 
-// Patch is a shortcut for router.Handle("PATCH", path, handle)
+// Patch is a shortcut for server.Handle("PATCH", path, handle)
 func (group *RouteGroup) PATCH(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("PATCH", relativePath, handlers)
 }
 
-// Put is a shortcut for router.Handle("PUT", path, handle)
+// Put is a shortcut for server.Handle("PUT", path, handle)
 func (group *RouteGroup) PUT(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("PUT", relativePath, handlers)
 }
 
-// Options is a shortcut for router.Handle("OPTIONS", path, handle)
+// Options is a shortcut for server.Handle("OPTIONS", path, handle)
 func (group *RouteGroup) OPTIONS(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("OPTIONS", relativePath, handlers)
 }
 
-// Head is a shortcut for router.Handle("HEAD", path, handle)
+// Head is a shortcut for server.Handle("HEAD", path, handle)
 func (group *RouteGroup) HEAD(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("HEAD", relativePath, handlers)
 }
@@ -151,7 +151,7 @@ func (group *RouteGroup) absolutePath(relativePath string) string {
 
 func (group *RouteGroup) returnObj() RouteHandler {
 	if group.root {
-		return group.router
+		return group.server
 	}
 	return group
 }

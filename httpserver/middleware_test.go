@@ -1,4 +1,4 @@
-package router
+package httpserver
 
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
@@ -8,35 +8,34 @@ package router
 import (
 	"testing"
 
+	"github.com/reflexionhealth/vanilla/httpserver/request"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/reflexionhealth/vanilla/router/routertest"
 )
 
 func TestMiddlewareGeneralCase(t *testing.T) {
 	signature := ""
-	router := New()
-	router.Use(func(c *Context) {
+	server := New()
+	server.Use(func(c *Context) {
 		signature += "A"
 		c.Continue()
 		signature += "B"
 	})
-	router.Use(func(c *Context) {
+	server.Use(func(c *Context) {
 		signature += "C"
 		c.Continue()
 		signature += "D"
 	})
-	router.GET("/", func(c *Context) {
+	server.GET("/", func(c *Context) {
 		signature += "E"
 	})
-	router.NotFound(func(c *Context) {
+	server.NotFound(func(c *Context) {
 		signature += " X "
 	})
-	router.NoMethod(func(c *Context) {
+	server.NoMethod(func(c *Context) {
 		signature += " XX "
 	})
 	// RUN
-	w := routertest.PerformRequest(router, "GET", "/")
+	w := request.PerformRequest(server, "GET", "/")
 
 	// TEST
 	assert.Equal(t, w.Code, 200)
@@ -45,13 +44,13 @@ func TestMiddlewareGeneralCase(t *testing.T) {
 
 func TestMiddlewareNotFound(t *testing.T) {
 	signature := ""
-	router := New()
-	router.Use(func(c *Context) {
+	server := New()
+	server.Use(func(c *Context) {
 		signature += "A"
 		c.Continue()
 		signature += "B"
 	})
-	router.Use(func(c *Context) {
+	server.Use(func(c *Context) {
 		signature += "C"
 		c.Continue()
 		c.Continue() // we can call Continue (not MustContinue) as much as we want
@@ -59,7 +58,7 @@ func TestMiddlewareNotFound(t *testing.T) {
 		c.Continue() // we can call Continue (not MustContinue) as much as we want
 		signature += "D"
 	})
-	router.NotFound(func(c *Context) {
+	server.NotFound(func(c *Context) {
 		signature += "E"
 		c.Continue()
 		signature += "F"
@@ -68,11 +67,11 @@ func TestMiddlewareNotFound(t *testing.T) {
 		c.Continue()
 		signature += "H"
 	})
-	router.NoMethod(func(c *Context) {
+	server.NoMethod(func(c *Context) {
 		signature += " X "
 	})
 	// RUN
-	w := routertest.PerformRequest(router, "GET", "/")
+	w := request.PerformRequest(server, "GET", "/")
 
 	// TEST
 	assert.Equal(t, w.Code, 404)
@@ -81,18 +80,18 @@ func TestMiddlewareNotFound(t *testing.T) {
 
 func TestMiddlewareNoMethodEnabled(t *testing.T) {
 	signature := ""
-	router := New()
-	router.Use(func(c *Context) {
+	server := New()
+	server.Use(func(c *Context) {
 		signature += "A"
 		c.Continue()
 		signature += "B"
 	})
-	router.Use(func(c *Context) {
+	server.Use(func(c *Context) {
 		signature += "C"
 		c.Continue()
 		signature += "D"
 	})
-	router.NoMethod(func(c *Context) {
+	server.NoMethod(func(c *Context) {
 		signature += "E"
 		c.Continue()
 		signature += "F"
@@ -101,14 +100,14 @@ func TestMiddlewareNoMethodEnabled(t *testing.T) {
 		c.Continue()
 		signature += "H"
 	})
-	router.NotFound(func(c *Context) {
+	server.NotFound(func(c *Context) {
 		signature += " X "
 	})
-	router.POST("/", func(c *Context) {
+	server.POST("/", func(c *Context) {
 		signature += " XX "
 	})
 	// RUN
-	w := routertest.PerformRequest(router, "GET", "/")
+	w := request.PerformRequest(server, "GET", "/")
 
 	// TEST
 	assert.Equal(t, w.Code, 405)
@@ -116,15 +115,15 @@ func TestMiddlewareNoMethodEnabled(t *testing.T) {
 }
 
 func TestMiddlewareWrite(t *testing.T) {
-	router := New()
-	router.Use(func(c *Context) {
+	server := New()
+	server.Use(func(c *Context) {
 		c.Response.Text(333, "hola\n")
 	})
-	router.GET("/", func(c *Context) {
+	server.GET("/", func(c *Context) {
 		c.Response.JSON(444, map[string]string{"foo": "bar"})
 	})
 
-	w := routertest.PerformRequest(router, "GET", "/")
+	w := request.PerformRequest(server, "GET", "/")
 
 	assert.Equal(t, w.Code, 333)
 	assert.Equal(t, w.Body.String(), "hola\n")

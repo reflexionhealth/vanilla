@@ -1,4 +1,4 @@
-package router
+package httpserver
 
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
@@ -11,7 +11,7 @@ type Param struct {
 	Value string
 }
 
-// Params is a Param-slice, as returned by the router.
+// Params is a Param-slice, as returned by the server.
 // The slice is ordered, the first URL parameter is also the first slice value.
 // It is therefore safe to read values by the index.
 type Params []Param

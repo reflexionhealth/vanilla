@@ -1,4 +1,4 @@
-package http
+package stack
 
 // This file is Copyright 2015 Matt Silverlock (matt@eatsleeprepeat.net).  All rights reserved.
 // Use of this source code is governed by a BSD style license.
@@ -17,7 +17,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/reflexionhealth/vanilla/router"
+	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 var testKey = []byte("abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc")
@@ -34,9 +34,9 @@ func GetToken(rec *httptest.ResponseRecorder) string {
 
 // TestProtectCookies checks that ProtectCookies calls sets a cookie and calls continue()
 func TestProtectCookies(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.GET("/", func(c *router.Context) { c.Response.HEAD(300) })
+	server.GET("/", func(c *httpserver.Context) { c.Response.HEAD(300) })
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -57,12 +57,12 @@ func TestProtectCookies(t *testing.T) {
 // TestMethod checks that idempotent methods return a 200 OK status and that non-idempotent
 // methods return a 403 Forbidden status when a CSRF cookie is not present
 func TestMethods(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
 
 	// test idempontent ("safe") methods
 	for _, method := range safeMethods {
-		server.Handle(method, "/", func(c *router.Context) {})
+		server.Handle(method, "/", func(c *httpserver.Context) {})
 
 		req, err := http.NewRequest(method, "/", nil)
 		if err != nil {
@@ -79,7 +79,7 @@ func TestMethods(t *testing.T) {
 	// test non-idempotent methods (should return a 403 without a cookie set)
 	nonIdempotent := []string{"POST", "PUT", "DELETE", "PATCH"}
 	for _, method := range nonIdempotent {
-		server.Handle(method, "/", func(c *router.Context) {})
+		server.Handle(method, "/", func(c *httpserver.Context) {})
 
 		req, err := http.NewRequest(method, "/", nil)
 		if err != nil {
@@ -96,10 +96,10 @@ func TestMethods(t *testing.T) {
 
 // TestNoCookie tests for failure if the cookie containing the session does not exist on a POST request
 func TestNoCookie(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.GET("/", func(c *router.Context) {})
-	server.POST("/", func(c *router.Context) {})
+	server.GET("/", func(c *httpserver.Context) {})
+	server.POST("/", func(c *httpserver.Context) {})
 
 	// POST the token back in the header
 	req, err := http.NewRequest("POST", "http://cookiejar.tst/", nil)
@@ -117,10 +117,10 @@ func TestNoCookie(t *testing.T) {
 
 // TestBadCookie tests for failure when a cookie header is modified (malformed)
 func TestBadCookie(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.GET("/", func(c *router.Context) {})
-	server.POST("/", func(c *router.Context) {})
+	server.GET("/", func(c *httpserver.Context) {})
+	server.POST("/", func(c *httpserver.Context) {})
 
 	// obtain a CSRF cookie via a GET request
 	req, err := http.NewRequest("GET", "http://cookiejar.tst/", nil)
@@ -154,9 +154,9 @@ func TestBadCookie(t *testing.T) {
 
 // TestVaryHeader checks that responses set a "Vary: Cookie" header to prevent client/proxy caching
 func TestVaryHeader(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.HEAD("/", func(c *router.Context) {})
+	server.HEAD("/", func(c *httpserver.Context) {})
 
 	req, err := http.NewRequest("HEAD", "https://www.golang.org/", nil)
 	if err != nil {
@@ -172,9 +172,9 @@ func TestVaryHeader(t *testing.T) {
 
 // TestNoReferer checks that requests with no Referer header fail
 func TestNoReferer(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.POST("/", func(c *router.Context) {})
+	server.POST("/", func(c *httpserver.Context) {})
 
 	req, err := http.NewRequest("POST", "https://golang.org/", nil)
 	if err != nil {
@@ -192,10 +192,10 @@ func TestNoReferer(t *testing.T) {
 // TestBadReferer checks that HTTPS requests with a Referer that do not
 // match the request URL corecectly fail CSRF validation
 func TestBadReferer(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.GET("/", func(c *router.Context) {})
-	server.POST("/", func(c *router.Context) {})
+	server.GET("/", func(c *httpserver.Context) {})
+	server.POST("/", func(c *httpserver.Context) {})
 
 	// obtain a CSRF cookie via a GET request.
 	req, err := http.NewRequest("GET", "https://cookiejar.tst/", nil)
@@ -228,10 +228,10 @@ func TestBadReferer(t *testing.T) {
 
 // TestWithReferer checks that requests with a valid Referer pass
 func TestWithReferer(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(ProtectCookies(testKey))
-	server.GET("/", func(c *router.Context) {})
-	server.POST("/", func(c *router.Context) {})
+	server.GET("/", func(c *httpserver.Context) {})
+	server.POST("/", func(c *httpserver.Context) {})
 
 	// obtain a CSRF cookie via a GET request.
 	req, err := http.NewRequest("GET", "http://cookiejar.tst/", nil)

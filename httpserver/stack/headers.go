@@ -1,6 +1,6 @@
-package http
+package stack
 
-import "github.com/reflexionhealth/vanilla/router"
+import "github.com/reflexionhealth/vanilla/httpserver"
 
 const (
 	HeaderCacheControl       = "Cache-Control"
@@ -13,8 +13,8 @@ const (
 )
 
 // CommonHeaders sets our Server-side headers like Cache, Security, etc
-func CommonHeaders(serverName string) router.HandlerFunc {
-	return func(c *router.Context) {
+func CommonHeaders(serverName string) httpserver.HandlerFunc {
+	return func(c *httpserver.Context) {
 		header := c.Response.Header()
 
 		// CACHING

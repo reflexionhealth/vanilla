@@ -1,4 +1,4 @@
-package http
+package stack
 
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
@@ -12,14 +12,14 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/reflexionhealth/vanilla/router"
+	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 var (
 	// stackFilters is a list of Regexps to filter out lines in the callstack
 	stackFilters = []*regexp.Regexp{
-		regexp.MustCompile(`internal/router/context`),
-		regexp.MustCompile(`internal/router/router`),
+		regexp.MustCompile(`internal/server/context`),
+		regexp.MustCompile(`internal/server/server`),
 		regexp.MustCompile(`net/http/server`),
 		regexp.MustCompile(`go/src/runtime`),
 	}
@@ -35,7 +35,7 @@ var (
 // Recover is a middlerware that recovers from any panics and writes a 500 if there was one.
 // Logs to the specified writter buffer. If nil is provided, it will still recover, but won't log.
 // Example: os.Stdout, a file opened in write mode, a socket...
-func Recover(c *router.Context) {
+func Recover(c *httpserver.Context) {
 	// Use "defer" so we can capture a panic
 	defer func() {
 		if err := recover(); err != nil {

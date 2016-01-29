@@ -1,4 +1,4 @@
-package http
+package stack
 
 import (
 	"net/http"
@@ -7,14 +7,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/reflexionhealth/vanilla/router"
+	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 // TestCommonHeaders checks the headers set by CommonHeaders
 func TestCommonHeaders(t *testing.T) {
-	server := router.New()
+	server := httpserver.New()
 	server.Use(CommonHeaders("Testify"))
-	server.GET("/", func(c *router.Context) { c.Response.HEAD(300) })
+	server.GET("/", func(c *httpserver.Context) { c.Response.HEAD(300) })
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {

@@ -1,4 +1,4 @@
-package http
+package stack
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/reflexionhealth/vanilla/router"
+	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 const (
@@ -54,7 +54,7 @@ func newRequestLog() interface{} {
 	return &RequestLog{log.New(buffer, "", 0), buffer}
 }
 
-func (l *RflxLogger) Logf(c *router.Context, format string, args ...interface{}) {
+func (l *RflxLogger) Logf(c *httpserver.Context, format string, args ...interface{}) {
 	logPtr, exists := c.GetLocal("Log")
 	if exists {
 		logger := logPtr.(*RequestLog)
@@ -64,7 +64,7 @@ func (l *RflxLogger) Logf(c *router.Context, format string, args ...interface{})
 	}
 }
 
-func (l *RflxLogger) LogValue(c *router.Context, name string, value interface{}) {
+func (l *RflxLogger) LogValue(c *httpserver.Context, name string, value interface{}) {
 	logPtr, exists := c.GetLocal("Log")
 	if exists {
 		logger := logPtr.(*RequestLog)
@@ -76,7 +76,7 @@ func (l *RflxLogger) LogValue(c *router.Context, name string, value interface{})
 	}
 }
 
-func (l *RflxLogger) LogResponse(c *router.Context, status string, value interface{}) {
+func (l *RflxLogger) LogResponse(c *httpserver.Context, status string, value interface{}) {
 	logPtr, exists := c.GetLocal("Log")
 	if exists {
 		logger := logPtr.(*RequestLog)
@@ -88,7 +88,7 @@ func (l *RflxLogger) LogResponse(c *router.Context, status string, value interfa
 	}
 }
 
-func LogRequest(c *router.Context) {
+func LogRequest(c *httpserver.Context) {
 	start := time.Now()
 	path := c.Request.URL.Path
 	method := c.Request.Method

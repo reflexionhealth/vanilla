@@ -1,4 +1,4 @@
-package router
+package httpserver
 
 // This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style license.
@@ -9,26 +9,25 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/reflexionhealth/vanilla/httpserver/request"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/reflexionhealth/vanilla/router/routertest"
 )
 
 func TestRouteGroupBasic(t *testing.T) {
-	router := New()
-	group := router.Group("/hola", func(c *Context) {})
+	server := New()
+	group := server.Group("/hola", func(c *Context) {})
 	group.Use(func(c *Context) {})
 
 	assert.Len(t, group.Handlers, 2)
 	assert.Equal(t, group.BasePath(), "/hola")
-	assert.Equal(t, group.router, router)
+	assert.Equal(t, group.server, server)
 
 	group2 := group.Group("manu")
 	group2.Use(func(c *Context) {}, func(c *Context) {})
 
 	assert.Len(t, group2.Handlers, 4)
 	assert.Equal(t, group2.BasePath(), "/hola/manu")
-	assert.Equal(t, group2.router, router)
+	assert.Equal(t, group2.server, server)
 }
 
 func TestRouteGroupBasicHandle(t *testing.T) {
@@ -42,8 +41,8 @@ func TestRouteGroupBasicHandle(t *testing.T) {
 }
 
 func performRequestInGroup(t *testing.T, method string) {
-	router := New()
-	v1 := router.Group("v1", func(c *Context) { c.Continue() })
+	server := New()
+	v1 := server.Group("v1", func(c *Context) { c.Continue() })
 	assert.Equal(t, v1.BasePath(), "/v1")
 
 	login := v1.Group("/login/", func(c *Context) { c.Continue() }, func(c *Context) { c.Continue() })
@@ -81,45 +80,45 @@ func performRequestInGroup(t *testing.T, method string) {
 		panic("unknown method")
 	}
 
-	w := routertest.PerformRequest(router, method, "/v1/login/test")
+	w := request.PerformRequest(server, method, "/v1/login/test")
 	assert.Equal(t, 400, w.Code)
 	assert.Equal(t, "the method was "+method+" and index 3", w.Body.String())
 
-	w = routertest.PerformRequest(router, method, "/v1/test")
+	w = request.PerformRequest(server, method, "/v1/test")
 	assert.Equal(t, 400, w.Code)
 	assert.Equal(t, "the method was "+method+" and index 1", w.Body.String())
 }
 
 func TestRouteGroupBadMethod(t *testing.T) {
-	router := New()
+	server := New()
 	assert.Panics(t, func() {
-		router.Handle("Get", "/")
+		server.Handle("Get", "/")
 	})
 	assert.Panics(t, func() {
-		router.Handle(" Get", "/")
+		server.Handle(" Get", "/")
 	})
 	assert.Panics(t, func() {
-		router.Handle("Get ", "/")
+		server.Handle("Get ", "/")
 	})
 	assert.Panics(t, func() {
-		router.Handle("", "/")
+		server.Handle("", "/")
 	})
 	assert.Panics(t, func() {
-		router.Handle("PO ST", "/")
+		server.Handle("PO ST", "/")
 	})
 	assert.Panics(t, func() {
-		router.Handle("1Get", "/")
+		server.Handle("1Get", "/")
 	})
 	assert.Panics(t, func() {
-		router.Handle("Patch", "/")
+		server.Handle("Patch", "/")
 	})
 }
 
 func TestRouteGroupPipeline(t *testing.T) {
-	router := New()
-	testRoutesInterface(t, router)
+	server := New()
+	testRoutesInterface(t, server)
 
-	v1 := router.Group("/v1")
+	v1 := server.Group("/v1")
 	testRoutesInterface(t, v1)
 }
 

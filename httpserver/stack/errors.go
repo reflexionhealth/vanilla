@@ -1,8 +1,8 @@
-package http
+package stack
 
 import (
 	"encoding/json"
-	"github.com/reflexionhealth/vanilla/router"
+	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 const (
@@ -50,7 +50,7 @@ func mustMakeErrorBody(errmsg string) string {
 
 // Error sets the header to the value of HeaderRequestErrors (eg. "Request-Errors")
 // and renders the errors in a json body
-func Error(r *router.Response, status int, errmsg string) {
+func Error(r *httpserver.Response, status int, errmsg string) {
 	if len(HeaderRequestErrors) > 0 {
 		header := mustMakeErrorHeader(errmsg)
 		r.Header().Set(HeaderRequestErrors, header)
@@ -60,7 +60,7 @@ func Error(r *router.Response, status int, errmsg string) {
 	r.JSON(status, body)
 }
 
-func StaticError(r *router.Response, status int, header string, body string) {
+func StaticError(r *httpserver.Response, status int, header string, body string) {
 	if len(HeaderRequestErrors) > 0 {
 		r.Header().Set(HeaderRequestErrors, header)
 	}
@@ -68,18 +68,18 @@ func StaticError(r *router.Response, status int, header string, body string) {
 	r.JSON(status, body)
 }
 
-func Unauthorized(r *router.Response) {
+func Unauthorized(r *httpserver.Response) {
 	StaticError(r, 401, unauthorizedHeader, unauthorizedBody)
 }
 
-func Forbidden(r *router.Response) {
+func Forbidden(r *httpserver.Response) {
 	StaticError(r, 403, forbiddenHeader, forbiddenBody)
 }
 
-func NotFound(r *router.Response) {
+func NotFound(r *httpserver.Response) {
 	StaticError(r, 404, notFoundHeader, notFoundBody)
 }
 
-func NoMethod(r *router.Response) {
+func NoMethod(r *httpserver.Response) {
 	StaticError(r, 405, noMethodHeader, noMethodBody)
 }
