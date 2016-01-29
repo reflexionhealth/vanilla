@@ -1,4 +1,4 @@
-package unstable
+package nullable
 
 import (
 	"database/sql"
@@ -11,36 +11,36 @@ import (
 
 func TestImplementsJsonMarshaller(t *testing.T) {
 	var marshaler json.Marshaler
-	marshaler = NullDate{}
+	marshaler = Date{}
 	assert.NotNil(t, marshaler)
-	marshaler = NullTime{}
+	marshaler = Time{}
 	assert.NotNil(t, marshaler)
-	marshaler = NullString{}
+	marshaler = String{}
 	assert.NotNil(t, marshaler)
-	marshaler = NullInt64{}
+	marshaler = Int64{}
 	assert.NotNil(t, marshaler)
 }
 
 func TestImplementsSqlValuer(t *testing.T) {
 	var valuer driver.Valuer
-	valuer = NullDate{}
+	valuer = Date{}
 	assert.NotNil(t, valuer)
-	valuer = NullTime{}
+	valuer = Time{}
 	assert.NotNil(t, valuer)
-	valuer = NullString{}
+	valuer = String{}
 	assert.NotNil(t, valuer)
-	valuer = NullInt64{}
+	valuer = Int64{}
 	assert.NotNil(t, valuer)
 }
 
 func TestNullDateRefImplementSqlScanner(t *testing.T) {
 	var scanner sql.Scanner
-	scanner = &NullDate{}
+	scanner = &Date{}
 	assert.NotNil(t, scanner)
-	scanner = &NullTime{}
+	scanner = &Time{}
 	assert.NotNil(t, scanner)
-	scanner = &NullString{}
+	scanner = &String{}
 	assert.NotNil(t, scanner)
-	scanner = &NullInt64{}
+	scanner = &Int64{}
 	assert.NotNil(t, scanner)
 }

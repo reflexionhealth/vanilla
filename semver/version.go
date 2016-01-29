@@ -1,4 +1,4 @@
-package unstable
+package semver
 
 import (
 	"fmt"

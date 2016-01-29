@@ -4,10 +4,13 @@
 //
 // Packages:
 //   crypto - wrapper around multiple crypto/etc packages for common crypto operations
+//   date - an extension to the built-in time library to deal explicitly with dates
 //   http - utilities and middleware for the reflexion http router
+//   math - (WIP) helper library for math operations
 //   router - a fork of httprouter's router / gin-gonic's engine that works the way we like
+//   semver - (WIP) helper library for working with semantic versioning
 //   sql - utilities to make working with sql in Golang more natural
-//   unstable - code we like, but that is still trying to find its proper home in a package
+//   sql/nullable - nullable types that support both database/sql and encoding/json
 package vanilla
 
 import "fmt"

@@ -1,4 +1,4 @@
-package unstable
+package date
 
 import (
 	"database/sql/driver"
@@ -14,34 +14,35 @@ const (
 
 // Date is a plain date, without time or timezone info (use time.Time for those!)
 type Date struct {
-	Year  int
-	Month time.Month
-	Day   int
+	Year     int
+	Month    time.Month
+	Day      int
+	Location *time.Location
 }
 
 // Create a Date from a time.Time object
-func DateFrom(t time.Time) Date {
+func From(t time.Time) Date {
 	y, m, d := t.Date()
-	return Date{y, m, d}
+	return Date{y, m, d, t.Location()}
 }
 
 func (d Date) PrevDay() Date {
 	if d.Day > 1 {
-		return Date{d.Year, d.Month, d.Day - 1}
+		return Date{d.Year, d.Month, d.Day - 1, d.Location}
 	} else if d.Month > 1 {
-		return Date{d.Year, d.Month - 1, DaysInMonth(d.Month-1, d.Year)}
+		return Date{d.Year, d.Month - 1, DaysInMonth(d.Month-1, d.Year), d.Location}
 	} else {
-		return Date{d.Year - 1, time.December, 31}
+		return Date{d.Year - 1, time.December, 31, d.Location}
 	}
 }
 
 func (d Date) NextDay() Date {
 	if d.Day < DaysInMonth(d.Month, d.Year) {
-		return Date{d.Year, d.Month, d.Day + 1}
+		return Date{d.Year, d.Month, d.Day + 1, d.Location}
 	} else if d.Month < time.December {
-		return Date{d.Year, d.Month + 1, 1}
+		return Date{d.Year, d.Month + 1, 1, d.Location}
 	} else {
-		return Date{d.Year + 1, time.January, 1}
+		return Date{d.Year + 1, time.January, 1, d.Location}
 	}
 }
 
@@ -52,11 +53,19 @@ func (d Date) Before(other Date) bool {
 				(d.Month == other.Month && d.Day < other.Day))))
 }
 
-func (d Date) BeginningOfDay(timezone *time.Location) time.Time {
+func (d Date) BeginningOfDay() time.Time {
+	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, d.Location)
+}
+
+func (d Date) BeginningOfDayIn(timezone *time.Location) time.Time {
 	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, timezone)
 }
 
-func (d Date) EndOfDay(timezone *time.Location) time.Time {
+func (d Date) EndOfDay() time.Time {
+	return time.Date(d.Year, d.Month, d.Day, 23, 59, 59, NanosecondsInSecond-1, d.Location)
+}
+
+func (d Date) EndOfDayIn(timezone *time.Location) time.Time {
 	return time.Date(d.Year, d.Month, d.Day, 23, 59, 59, NanosecondsInSecond-1, timezone)
 }
 
@@ -67,18 +76,18 @@ func (d Date) Scan(src interface{}) error {
 		return errors.New("unstable/date: scan value was not a Time")
 	}
 
-	d = DateFrom(t)
+	d = From(t)
 	return nil
 }
 
 // Implement sql.driver.Valuer interface
 func (d Date) Value() (driver.Value, error) {
-	return d.BeginningOfDay(time.UTC), nil
+	return d.BeginningOfDayIn(time.UTC), nil
 }
 
 // Implement json.Marshaler interface
 func (d Date) MarshalJSON() ([]byte, error) {
-	return []byte(d.BeginningOfDay(time.UTC).Format(`"2006-01-02"`)), nil
+	return []byte(d.BeginningOfDayIn(time.UTC).Format(`"2006-01-02"`)), nil
 }
 
 func IsLeapYear(year int) bool {

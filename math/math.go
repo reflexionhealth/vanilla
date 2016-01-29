@@ -1,4 +1,4 @@
-package unstable
+package math
 
 func MinFloat32(a float32, b float32) float32 {
 	if a < b {
