@@ -11,15 +11,18 @@ import (
 	"io/ioutil"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/reflexionhealth/vanilla/httpserver"
 )
 
 var (
+	// lastLineRegexp is the stack line for "recover", we don't need to show anything after it
+	lastLineRegexp = regexp.MustCompile(`vanilla/httpserver/stack/recover.go`)
 	// stackFilters is a list of Regexps to filter out lines in the callstack
 	stackFilters = []*regexp.Regexp{
-		regexp.MustCompile(`internal/server/context`),
-		regexp.MustCompile(`internal/server/server`),
+		regexp.MustCompile(`vanilla/httpserver/context`),
+		regexp.MustCompile(`vanilla/httpserver/server`),
 		regexp.MustCompile(`net/http/server`),
 		regexp.MustCompile(`go/src/runtime`),
 	}
@@ -84,7 +87,9 @@ func stack(skip int) []byte {
 		}
 
 		// Print this much at least.  If we can't find the source, it won't show.
-		fmt.Fprintf(buf, "\n  %s:%d (0x%x)\n", file, line, pc)
+		pathAndPkg := strings.Split(file, "/src/")
+		pkgName := strings.Join(pathAndPkg[1:], "/src/")
+		fmt.Fprintf(buf, "\n  %s:%d\n", pkgName, line)
 		if file != lastFile {
 			data, err := ioutil.ReadFile(file)
 			if err != nil {
@@ -94,6 +99,10 @@ func stack(skip int) []byte {
 			lastFile = file
 		}
 		fmt.Fprintf(buf, "\t%s: %s\n", function(pc), source(lines, line))
+
+		if lastLineRegexp.MatchString(file) {
+			break
+		}
 	}
 	return buf.Bytes()
 }
