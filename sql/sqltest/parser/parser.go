@@ -2,6 +2,9 @@ package parser
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
+
 	"github.com/reflexionhealth/vanilla/sql/sqltest/ast"
 	"github.com/reflexionhealth/vanilla/sql/sqltest/scanner"
 	"github.com/reflexionhealth/vanilla/sql/sqltest/token"
@@ -30,9 +33,12 @@ func (e *ParseError) Error() string {
 type Parser struct {
 	scanner scanner.Scanner
 	rules   Ruleset
-	pos     int         // next token offset
-	tok     token.Token // next token type
-	lit     string      // next token literal
+
+	pos int         // next token offset
+	tok token.Token // next token type
+	lit string      // next token literal
+
+	Trace bool
 }
 
 // Make initialize
@@ -78,6 +84,9 @@ func (p *Parser) recoverStopped(err *error) {
 }
 
 func (p *Parser) error(pos token.Position, msg string) {
+	if p.Trace {
+		fmt.Printf(" (error) %v\n", (&ParseError{pos, msg}).Error())
+	}
 	p.stopParsing(&ParseError{pos, msg})
 }
 
@@ -93,6 +102,26 @@ func (p *Parser) expected(what string) {
 }
 
 func (p *Parser) next() {
+	if p.Trace {
+		pc, _, line, _ := runtime.Caller(1)
+		path := strings.Split(runtime.FuncForPC(pc).Name(), ".")
+		name := path[len(path)-1]
+		// ignore expect and expected
+		if len(name) >= 6 && name[0:6] == "expect" {
+			pc, _, line, _ = runtime.Caller(2)
+			path = strings.Split(runtime.FuncForPC(pc).Name(), ".")
+			name = path[len(path)-1]
+		}
+		caller := "Parser." + name
+		lit := p.lit
+		if len(lit) > 7 {
+			lit = lit[0:6] + "~"
+		}
+		// NOTE: For some irritating reason, running `go test` will always
+		//       hide stderr so make sure we use stdout
+		fmt.Printf(" %7.7s : %-14s @ %v:%v\n", lit, p.tok, caller, line)
+	}
+
 	p.pos, p.tok, p.lit = p.scanner.Scan()
 }
 
@@ -136,6 +165,7 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 	} else {
 		stmt.Selection = []ast.Expr{p.parseExpression()}
 		for p.tok == token.COMMA {
+			p.next() // eat comma
 			stmt.Selection = append(stmt.Selection, p.parseExpression())
 		}
 	}
@@ -161,24 +191,29 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 		p.expected("a table name")
 	}
 
-	if p.tok == token.WHERE {
-		panic("TODO: parse WHERE")
-	}
+	// if p.tok == token.WHERE {
+	// 	panic("TODO: parse WHERE")
+	// }
+	//
+	// if p.tok == token.GROUP {
+	// 	panic("TODO: parse GROUP BY")
+	// }
+	//
+	// if p.tok == token.HAVING {
+	// 	panic("TODO: parse HAVING")
+	// }
+	//
+	// if p.tok == token.ORDER {
+	// 	panic("TODO: parse ORDER")
+	// }
+	//
+	// if p.tok == token.LIMIT {
+	// 	panic("TODO: parse LIMIT")
+	// }
 
-	if p.tok == token.GROUP {
-		panic("TODO: parse GROUP BY")
-	}
-
-	if p.tok == token.HAVING {
-		panic("TODO: parse HAVING")
-	}
-
-	if p.tok == token.ORDER {
-		panic("TODO: parse ORDER")
-	}
-
-	if p.tok == token.LIMIT {
-		panic("TODO: parse LIMIT")
+	// TODO: For now we're just eating everything else until more is implemented
+	for p.tok != token.EOS {
+		p.next()
 	}
 
 	return stmt
