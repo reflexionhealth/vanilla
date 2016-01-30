@@ -22,7 +22,7 @@ func TestSelect(t *testing.T) {
 	for i := 0; i < MAX_ITER; i++ {
 		_, tok, _ := s.Scan()
 		tokens = append(tokens, tok)
-		if tok == token.INVALID || tok == token.EOF {
+		if tok == token.INVALID || tok == token.EOL {
 			break
 		}
 	}
@@ -33,7 +33,7 @@ func TestSelect(t *testing.T) {
 		token.SELECT, token.ASTERISK, token.FROM, token.IDENT,
 		// WHERE id = 3
 		token.WHERE, token.IDENT, token.EQUALS, token.NUMBER,
-		token.EOF,
+		token.EOL,
 	}, tokens)
 }
 
@@ -88,7 +88,7 @@ func scanAll(src string) *scanError {
 
 	for i := 0; i < 9999; i++ {
 		t.pos, t.tok, t.lit = s.Scan()
-		if t.tok == token.EOF {
+		if t.tok == token.EOL {
 			break
 		} else if err != nil {
 			return err
@@ -610,26 +610,26 @@ func TestScanPos(t *testing.T) {
 	var scan scanToken
 	s := Scanner{}
 	s.Init([]byte("CREATE TABLE\n  candies\n()"), handleError, ScanRuleset{})
-	assert.Equal(t, token.Position{"", 0, 1, 1}, s.Pos())
+	assert.Equal(t, token.Position{"sql", 0, 1, 1}, s.Pos())
 	assert.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"", 6, 1, 7}, s.Pos())
+	assert.Equal(t, token.Position{"sql", 6, 1, 7}, s.Pos())
 	assert.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"", 12, 1, 13}, s.Pos())
+	assert.Equal(t, token.Position{"sql", 12, 1, 13}, s.Pos())
 	assert.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"", 22, 2, 10}, s.Pos())
+	assert.Equal(t, token.Position{"sql", 22, 2, 10}, s.Pos())
 	assert.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"", 24, 3, 2}, s.Pos())
+	assert.Equal(t, token.Position{"sql", 24, 3, 2}, s.Pos())
 	assert.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"", 25, 3, 3}, s.Pos())
+	assert.Equal(t, token.Position{"sql", 25, 3, 3}, s.Pos())
 	assert.Nil(t, err)
 }

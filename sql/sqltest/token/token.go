@@ -45,7 +45,7 @@ type Token int
 const (
 	// Special tokens
 	INVALID Token = iota
-	EOF
+	EOL
 	COMMENT
 
 	// Identifiers
@@ -88,11 +88,14 @@ const (
 	SELECT
 	FROM
 	WHERE
+	HAVING
 	GROUP
 	ORDER
 	BY
 	ASC
 	DESC
+	LIMIT
+	OFFSET
 
 	INSERT
 	INTO
@@ -103,7 +106,9 @@ const (
 
 	WITH
 	AS
+	ALL
 	DISTINCT
+	DISTINCTROW
 	FILTER
 
 	NULL
@@ -124,7 +129,7 @@ const (
 
 var tokens = [...]string{
 	INVALID: "Invalid token",
-	EOF:     "EOF",
+	EOL:     "EOL",
 	COMMENT: "Comment",
 
 	IDENT:        "Identifier",
@@ -161,11 +166,14 @@ var tokens = [...]string{
 	SELECT: "SELECT",
 	FROM:   "FROM",
 	WHERE:  "WHERE",
+	HAVING: "HAVING",
 	GROUP:  "GROUP",
 	ORDER:  "ORDER",
 	BY:     "BY",
 	ASC:    "ASC",
 	DESC:   "DESC",
+	LIMIT:  "LIMIT",
+	OFFSET: "OFFSET",
 
 	INSERT: "INSERT",
 	INTO:   "INTO",
@@ -174,10 +182,12 @@ var tokens = [...]string{
 	UPDATE: "UPDATE",
 	SET:    "SET",
 
-	WITH:     "WITH",
-	AS:       "AS",
-	DISTINCT: "DISTINCT",
-	FILTER:   "FILTER",
+	WITH:        "WITH",
+	AS:          "AS",
+	ALL:         "ALL",
+	DISTINCT:    "DISTINCT",
+	DISTINCTROW: "DISTINCTROW",
+	FILTER:      "FILTER",
 
 	NULL:  "NULL",
 	TRUE:  "TRUE",

@@ -76,7 +76,7 @@ func (s *Scanner) Init(src []byte, err ErrorHandler, rules ScanRuleset) {
 }
 
 // Scan scans the next token and returns the token position, the token, and its
-// literal string if applicable. The source end is indicated by the EOF token.
+// literal string if applicable. The source end is indicated by the EOL token.
 //
 // If the returned token is a literal the literal string has the corresponding value.
 //
@@ -110,7 +110,7 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 		s.next() // always make progress
 		switch ch {
 		case -1:
-			tok = token.EOF
+			tok = token.EOL
 		// case ???:
 		// 	s.scanComment()
 		// 	goto scanAgain
@@ -183,6 +183,7 @@ func (s *Scanner) Pos() token.Position {
 	// Get length of current line in UTF-8 characters
 	column := 1 + len(string(s.src[s.lineOffset:s.offset]))
 	return token.Position{
+		Name:   "sql",
 		Offset: s.offset,
 		Line:   s.line + 1,
 		Column: column,
@@ -195,6 +196,7 @@ func (s *Scanner) error(offset int, msg string) {
 	if s.err != nil {
 		column := 1 + len(string(s.src[s.lineOffset:offset]))
 		pos := token.Position{
+			Name:   "sql",
 			Offset: offset,
 			Line:   s.line + 1,
 			Column: column,
