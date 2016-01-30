@@ -1,26 +1,44 @@
 package sqltest
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"io"
 
 	"github.com/reflexionhealth/vanilla/sql/sqltest/ast"
 	"github.com/reflexionhealth/vanilla/sql/sqltest/parser"
+	"github.com/reflexionhealth/vanilla/sql/sqltest/scanner"
 )
 
-type Driver struct{}
+var AnsiRuleset = parser.Ruleset{}
+var MysqlRuleset = parser.Ruleset{
+	CanSelectDistinctRow: true,
+	ScanRules: scanner.Ruleset{
+		BacktickIsQuotemark:       true,
+		DoubleQuoteIsNotQuotemark: true,
+	},
+}
+
+func Register(name string, rules parser.Ruleset) {
+	sql.Register(name, &Driver{rules})
+}
+
+type Driver struct {
+	Rules parser.Ruleset
+}
 
 func (d *Driver) Open(name string) (driver.Conn, error) {
-	return new(Conn), nil
+	return &Conn{Rules: d.Rules}, nil
 }
 
 type Conn struct {
 	Closed bool
+	Rules  parser.Ruleset
 }
 
 func (c *Conn) Prepare(query string) (driver.Stmt, error) {
-	prep := parser.Make([]byte(query), parser.Ruleset{})
+	prep := parser.Make([]byte(query), c.Rules)
 	stmt, err := prep.ParseStatement()
 	return &Stmt{Ast: stmt}, err
 }
@@ -36,8 +54,8 @@ func (c *Conn) Begin() (driver.Tx, error) {
 }
 
 type Stmt struct {
-	Ast    ast.Stmt
 	Closed bool
+	Ast    ast.Stmt
 }
 
 func (s *Stmt) Close() error {
