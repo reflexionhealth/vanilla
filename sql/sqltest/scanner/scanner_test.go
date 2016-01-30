@@ -154,6 +154,12 @@ func TestScansQuotedIdentifier(t *testing.T) {
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, `simple`, scan.lit)
 
+	scan, err = scanOnceWith("`simple`", Ruleset{BacktickIsQuotemark: true})
+	assert.Nil(t, err)
+	assert.Equal(t, token.QUOTED_IDENT, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, `simple`, scan.lit)
+
 	scan, err = scanOnceWith(`"simple"`, Ruleset{DoubleQuoteIsNotQuotemark: true})
 	if assert.NotNil(t, err) {
 		assert.Equal(t, 0, err.pos.Offset)
@@ -550,6 +556,12 @@ func TestScansPunctuation(t *testing.T) {
 	scan, err = scanOnce("*")
 	assert.Nil(t, err)
 	assert.Equal(t, token.ASTERISK, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, "", scan.lit)
+
+	scan, err = scanOnce("?")
+	assert.Nil(t, err)
+	assert.Equal(t, token.QUESTION, scan.tok)
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, "", scan.lit)
 

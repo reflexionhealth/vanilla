@@ -124,6 +124,7 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 			}
 		case '`':
 			if s.rules.BacktickIsQuotemark {
+				tok, lit = s.scanQuotedIdentifier('`')
 			} else {
 				s.error(pos, fmt.Sprintf("unexpected character %#U", ch))
 				tok = token.INVALID
@@ -139,6 +140,8 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 			tok = token.DOLLAR
 		case '*':
 			tok = token.ASTERISK
+		case '?':
+			tok = token.QUESTION
 		case '+':
 			tok = token.PLUS
 		case '-':
