@@ -15,14 +15,14 @@ func TestSelect(t *testing.T) {
 	}
 
 	s := Scanner{}
-	s.Init([]byte(query), failOnError, ScanRuleset{})
+	s.Init([]byte(query), failOnError, Ruleset{})
 
 	var tokens []token.Token
 	MAX_ITER := 200 // Don't loop forever
 	for i := 0; i < MAX_ITER; i++ {
 		_, tok, _ := s.Scan()
 		tokens = append(tokens, tok)
-		if tok == token.INVALID || tok == token.EOL {
+		if tok == token.INVALID || tok == token.EOS {
 			break
 		}
 	}
@@ -33,7 +33,7 @@ func TestSelect(t *testing.T) {
 		token.SELECT, token.ASTERISK, token.FROM, token.IDENT,
 		// WHERE id = 3
 		token.WHERE, token.IDENT, token.EQUALS, token.NUMBER,
-		token.EOL,
+		token.EOS,
 	}, tokens)
 }
 
@@ -56,13 +56,13 @@ func scanOnce(src string) (scanToken, *scanError) {
 
 	var t scanToken
 	s := Scanner{}
-	s.Init([]byte(src), handleError, ScanRuleset{})
+	s.Init([]byte(src), handleError, Ruleset{})
 	t.pos, t.tok, t.lit = s.Scan()
 
 	return t, err
 }
 
-func scanOnceWith(src string, rules ScanRuleset) (scanToken, *scanError) {
+func scanOnceWith(src string, rules Ruleset) (scanToken, *scanError) {
 	var err *scanError
 	handleError := func(pos token.Position, msg string) {
 		err = &scanError{pos, msg}
@@ -84,11 +84,11 @@ func scanAll(src string) *scanError {
 
 	var t scanToken
 	s := Scanner{}
-	s.Init([]byte(src), handleError, ScanRuleset{})
+	s.Init([]byte(src), handleError, Ruleset{})
 
 	for i := 0; i < 9999; i++ {
 		t.pos, t.tok, t.lit = s.Scan()
-		if t.tok == token.EOL {
+		if t.tok == token.EOS {
 			break
 		} else if err != nil {
 			return err
@@ -125,7 +125,7 @@ func TestErrorsRespectWhitespace(t *testing.T) {
 		assert.Equal(t, 6, err.pos.Offset)
 		assert.Equal(t, 3, err.pos.Line)
 		assert.Equal(t, 5, err.pos.Column)
-		assert.Equal(t, `Unexpected character U+007E '~'`, err.msg)
+		assert.Equal(t, `unexpected character U+007E '~'`, err.msg)
 	}
 }
 
@@ -141,7 +141,7 @@ func TestScansIdentifier(t *testing.T) {
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, `sim`, scan.lit)
 
-	scan, err = scanOnceWith("sim$ple", ScanRuleset{DollarIsLetter: true})
+	scan, err = scanOnceWith("sim$ple", Ruleset{DollarIsLetter: true})
 	assert.Equal(t, token.IDENT, scan.tok)
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, `sim$ple`, scan.lit)
@@ -154,12 +154,12 @@ func TestScansQuotedIdentifier(t *testing.T) {
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, `simple`, scan.lit)
 
-	scan, err = scanOnceWith(`"simple"`, ScanRuleset{DoubleQuoteIsNotQuotemark: true})
+	scan, err = scanOnceWith(`"simple"`, Ruleset{DoubleQuoteIsNotQuotemark: true})
 	if assert.NotNil(t, err) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unexpected character U+0022 '"'`, err.msg)
+		assert.Equal(t, `unexpected character U+0022 '"'`, err.msg)
 	}
 }
 
@@ -202,7 +202,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unterminated string`, err.msg)
+		assert.Equal(t, `unterminated string`, err.msg)
 	}
 
 	scan, err = scanOnce(`'No end quote`)
@@ -211,7 +211,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unterminated string`, err.msg)
+		assert.Equal(t, `unterminated string`, err.msg)
 	}
 
 	// scan, err = scanOnce("'contains unescaped \u0007 control char'")
@@ -220,7 +220,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 0, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 1, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in string: U+0007`, err.msg)
+	// 	assert.Equal(t, `unexpected character in string: U+0007`, err.msg)
 	// }
 
 	// scan, err = scanOnce("'null-byte \u0000 in string'")
@@ -229,7 +229,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 0, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 1, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in string: U+0000`, err.msg)
+	// 	assert.Equal(t, `unexpected character in string: U+0000`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'\u`)
@@ -238,7 +238,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 2, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `Unterminated escape sequence`, err.msg)
+	// 	assert.Equal(t, `unterminated escape sequence`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'\`)
@@ -247,7 +247,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 2, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `Unterminated escape sequence`, err.msg)
+	// 	assert.Equal(t, `unterminated escape sequence`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'\m'`)
@@ -256,7 +256,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 2, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `Unknown escape sequence`, err.msg)
+	// 	assert.Equal(t, `unknown escape sequence`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'\uD800'`)
@@ -265,7 +265,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 2, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `Escape sequence is invalid Unicode code point`, err.msg)
+	// 	assert.Equal(t, `escape sequence is invalid unicode code point`, err.msg)
 	// }
 
 	scan, err = scanOnce("'multi\nline'")
@@ -274,7 +274,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unterminated string`, err.msg)
+		assert.Equal(t, `unterminated string`, err.msg)
 	}
 
 	scan, err = scanOnce("'multi\rline'")
@@ -283,7 +283,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unterminated string`, err.msg)
+		assert.Equal(t, `unterminated string`, err.msg)
 	}
 
 	// scan, err = scanOnce(`'bad \z esc'`)
@@ -292,7 +292,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character escape sequence: \z`, err.msg)
+	// 	assert.Equal(t, `unexpected character escape sequence: \z`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'bad \x esc'`)
@@ -301,7 +301,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character escape sequence: \x`, err.msg)
+	// 	assert.Equal(t, `unexpected character escape sequence: \x`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'bad \u1 esc'`)
@@ -310,7 +310,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in escape sequence: U+0020 ' '`, err.msg)
+	// 	assert.Equal(t, `unexpected character in escape sequence: U+0020 ' '`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'bad \u0XX1 esc'`)
@@ -319,7 +319,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'bad \uXXXX esc'`)
@@ -328,7 +328,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'bad \uFXXX esc'`)
@@ -337,7 +337,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
 	// }
 
 	// scan, err = scanOnce(`'bad \uXXXF esc'`)
@@ -346,7 +346,7 @@ func TestReportsUsefulStringErrors(t *testing.T) {
 	// 	assert.Equal(t, 6, err.pos.Offset)
 	// 	assert.Equal(t, 1, err.pos.Line)
 	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `Unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
 	// }
 }
 
@@ -443,7 +443,7 @@ func TestReportsUsefulNumberErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Missing digits after decimal point in number`, err.msg)
+		assert.Equal(t, `missing digits after decimal point in number`, err.msg)
 	}
 
 	scan, err = scanOnce("1.A")
@@ -452,7 +452,7 @@ func TestReportsUsefulNumberErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Missing digits after decimal point in number`, err.msg)
+		assert.Equal(t, `missing digits after decimal point in number`, err.msg)
 	}
 
 	scan, err = scanOnce("1.0e")
@@ -461,7 +461,7 @@ func TestReportsUsefulNumberErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Missing digits after exponent in number`, err.msg)
+		assert.Equal(t, `missing digits after exponent in number`, err.msg)
 	}
 
 	scan, err = scanOnce("1.0eA")
@@ -470,7 +470,7 @@ func TestReportsUsefulNumberErrors(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Missing digits after exponent in number`, err.msg)
+		assert.Equal(t, `missing digits after exponent in number`, err.msg)
 	}
 }
 
@@ -566,14 +566,14 @@ func TestScansPunctuation(t *testing.T) {
 	assert.Equal(t, "", scan.lit)
 }
 
-func TestReportsUsefulUnknownCharacter(t *testing.T) {
+func TestReportsUsefulunknownCharacter(t *testing.T) {
 	scan, err := scanOnce("\u203B")
 	assert.Equal(t, token.INVALID, scan.tok)
 	if assert.NotNil(t, err) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, "Unexpected character U+203B '\u203B'", err.msg)
+		assert.Equal(t, "unexpected character U+203B '\u203B'", err.msg)
 	}
 
 	scan, err = scanOnce("\u200b")
@@ -582,7 +582,7 @@ func TestReportsUsefulUnknownCharacter(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unexpected character U+200B`, err.msg)
+		assert.Equal(t, `unexpected character U+200B`, err.msg)
 	}
 }
 
@@ -597,7 +597,7 @@ func TestScannerNextCharacter(t *testing.T) {
 		assert.Equal(t, 0, err.pos.Offset)
 		assert.Equal(t, 1, err.pos.Line)
 		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `Unexpected character U+0000`, err.msg)
+		assert.Equal(t, `unexpected character U+0000`, err.msg)
 	}
 }
 
@@ -609,7 +609,7 @@ func TestScanPos(t *testing.T) {
 
 	var scan scanToken
 	s := Scanner{}
-	s.Init([]byte("CREATE TABLE\n  candies\n()"), handleError, ScanRuleset{})
+	s.Init([]byte("CREATE TABLE\n  candies\n()"), handleError, Ruleset{})
 	assert.Equal(t, token.Position{"sql", 0, 1, 1}, s.Pos())
 	assert.Nil(t, err)
 

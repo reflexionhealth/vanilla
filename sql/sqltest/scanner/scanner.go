@@ -22,8 +22,8 @@ func isDigit(ch rune) bool {
 // the offending token.
 type ErrorHandler func(pos token.Position, msg string)
 
-// A ScanRuleset specifies the dialect specific tokenizing rules for a SQL dialect
-type ScanRuleset struct {
+// A scanner.Ruleset specifies the dialect specific tokenizing rules for a SQL dialect
+type Ruleset struct {
 	BracketsAreQuotes         bool
 	BacktickIsQuotemark       bool
 	DoubleQuoteIsNotQuotemark bool
@@ -39,7 +39,7 @@ type Scanner struct {
 	// immutable state
 	src   []byte
 	err   ErrorHandler
-	rules ScanRuleset
+	rules Ruleset
 
 	// scanning state
 	char       rune // current character
@@ -61,7 +61,7 @@ type Scanner struct {
 //
 // Note that Init may call err if there is an error in the first character
 // of the file.
-func (s *Scanner) Init(src []byte, err ErrorHandler, rules ScanRuleset) {
+func (s *Scanner) Init(src []byte, err ErrorHandler, rules Ruleset) {
 	s.src = src
 	s.err = err
 	s.rules = rules
@@ -76,7 +76,7 @@ func (s *Scanner) Init(src []byte, err ErrorHandler, rules ScanRuleset) {
 }
 
 // Scan scans the next token and returns the token position, the token, and its
-// literal string if applicable. The source end is indicated by the EOL token.
+// literal string if applicable. The source end is indicated by the EOS token.
 //
 // If the returned token is a literal the literal string has the corresponding value.
 //
@@ -110,13 +110,13 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 		s.next() // always make progress
 		switch ch {
 		case -1:
-			tok = token.EOL
+			tok = token.EOS
 		// case ???:
 		// 	s.scanComment()
 		// 	goto scanAgain
 		case '"':
 			if s.rules.DoubleQuoteIsNotQuotemark {
-				s.error(pos, fmt.Sprintf("Unexpected character %#U", ch))
+				s.error(pos, fmt.Sprintf("unexpected character %#U", ch))
 				tok = token.INVALID
 				lit = string(ch)
 			} else {
@@ -125,7 +125,7 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 		case '`':
 			if s.rules.BacktickIsQuotemark {
 			} else {
-				s.error(pos, fmt.Sprintf("Unexpected character %#U", ch))
+				s.error(pos, fmt.Sprintf("unexpected character %#U", ch))
 				tok = token.INVALID
 				lit = string(ch)
 			}
@@ -170,7 +170,7 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 				tok = token.PERIOD
 			}
 		default:
-			s.error(pos, fmt.Sprintf("Unexpected character %#U", ch))
+			s.error(pos, fmt.Sprintf("unexpected character %#U", ch))
 			tok = token.INVALID
 			lit = string(ch)
 		}
@@ -223,12 +223,12 @@ func (s *Scanner) next() {
 		r, width := rune(s.src[s.readOffset]), 1
 		switch {
 		case r == 0:
-			s.error(s.offset, "Unexpected character NUL")
+			s.error(s.offset, "unexpected character NUL")
 		case r >= 0x80:
 			// not ASCII
 			r, width = utf8.DecodeRune(s.src[s.readOffset:])
 			if r == utf8.RuneError && width == 1 {
-				s.error(s.offset, "Invalid UTF-8 encoding")
+				s.error(s.offset, "invalid UTF-8 encoding")
 			}
 		}
 		s.readOffset += width
@@ -272,11 +272,11 @@ func (s *Scanner) scanQuotedIdentifier(closemark rune) (token.Token, string) {
 	} else if s.char == ' ' {
 		tok = token.INVALID
 		lit = string(s.src[offset:s.offset])
-		s.error(offset, "Unterminated identifier")
+		s.error(offset, "unterminated identifier")
 	} else {
 		tok = token.INVALID
 		lit = string(s.src[offset:s.offset])
-		s.error(offset, fmt.Sprintf("Unexpected character in identifier: %#U", s.char))
+		s.error(offset, fmt.Sprintf("unexpected character in identifier: %#U", s.char))
 	}
 
 	return tok, lit
@@ -301,7 +301,7 @@ func (s *Scanner) scanNumber(afterDecimal bool) (token.Token, string) {
 		decOffset := s.offset
 		s.scanMantissa()
 		if s.offset == decOffset {
-			s.error(offset, "Missing digits after decimal point in number")
+			s.error(offset, "missing digits after decimal point in number")
 			tok = token.INVALID
 		}
 	}
@@ -313,7 +313,7 @@ func (s *Scanner) scanNumber(afterDecimal bool) (token.Token, string) {
 		expOffset := s.offset
 		s.scanMantissa()
 		if s.offset == expOffset {
-			s.error(offset, "Missing digits after exponent in number")
+			s.error(offset, "missing digits after exponent in number")
 			tok = token.INVALID
 		}
 	}
@@ -330,7 +330,7 @@ func (s *Scanner) scanString() (token.Token, string) {
 		ch := s.char
 		if ch == '\n' || ch == '\r' || ch < 0 {
 			tok = token.INVALID
-			s.error(offset, "Unterminated string")
+			s.error(offset, "unterminated string")
 			break
 		} else if ch == '\\' {
 			s.next()

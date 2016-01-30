@@ -45,7 +45,7 @@ type Token int
 const (
 	// Special tokens
 	INVALID Token = iota
-	EOL
+	EOS
 	COMMENT
 
 	// Identifiers
@@ -129,7 +129,7 @@ const (
 
 var tokens = [...]string{
 	INVALID: "Invalid token",
-	EOL:     "EOL",
+	EOS:     "End of statement",
 	COMMENT: "Comment",
 
 	IDENT:        "Identifier",

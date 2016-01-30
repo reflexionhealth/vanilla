@@ -7,9 +7,9 @@ import (
 	"github.com/reflexionhealth/vanilla/sql/sqltest/token"
 )
 
-// A ParseRuleset specifies the dialect specific parsing rules for a SQL dialect
-type ParseRuleset struct {
-	ScanRules scanner.ScanRuleset
+// A parser.Ruleset specifies the dialect specific parsing rules for a SQL dialect
+type Ruleset struct {
+	ScanRules scanner.Ruleset
 
 	CanSelectDistinctRow bool
 	CanSelectWithoutFrom bool
@@ -29,21 +29,21 @@ func (e *ParseError) Error() string {
 // structure but must be initialized via Init before use.
 type Parser struct {
 	scanner scanner.Scanner
-	rules   ParseRuleset
+	rules   Ruleset
 	pos     int         // next token offset
 	tok     token.Token // next token type
 	lit     string      // next token literal
 }
 
 // Make initialize
-func Make(src []byte, rules ParseRuleset) Parser {
+func Make(src []byte, rules Ruleset) Parser {
 	p := Parser{}
 	p.Init(src, rules)
 	return p
 }
 
 // Init prepares the parser p to convert a text src into an ast.
-func (p *Parser) Init(src []byte, rules ParseRuleset) {
+func (p *Parser) Init(src []byte, rules Ruleset) {
 	scanError := func(pos token.Position, msg string) { p.error(pos, msg) }
 	p.scanner.Init(src, scanError, rules.ScanRules)
 }
@@ -83,13 +83,13 @@ func (p *Parser) error(pos token.Position, msg string) {
 
 func (p *Parser) expect(tok token.Token) {
 	if p.tok != tok {
-		p.error(p.scanner.Pos(), fmt.Sprintf(`Expected '%v' but received '%v'.`, tok, p.tok))
+		p.error(p.scanner.Pos(), fmt.Sprintf(`expected '%v' but received '%v'.`, tok, p.tok))
 	}
 	p.next()
 }
 
 func (p *Parser) expected(what string) {
-	p.error(p.scanner.Pos(), fmt.Sprintf(`Expected '%v' but received '%v'.`, what, p.tok))
+	p.error(p.scanner.Pos(), fmt.Sprintf(`expected '%v' but received '%v'.`, what, p.tok))
 }
 
 func (p *Parser) next() {
@@ -125,7 +125,7 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 			stmt.Type = ast.SELECT_DISTINCTROW
 			p.next()
 		} else {
-			p.error(p.scanner.Pos(), `Query includes SELECT "DISTINCTROW", but CanSelectDistinctRow is false`)
+			p.error(p.scanner.Pos(), `query includes SELECT "DISTINCTROW", but CanSelectDistinctRow is false`)
 			p.next()
 		}
 	}
@@ -143,7 +143,7 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 	// NOTE: The FROM clause is sometimes optional, but since this would be an
 	// error in most common uses cases, the default will be that it is required
 	// even for dialects where it is technically optional.
-	if p.rules.CanSelectWithoutFrom && p.tok == token.EOL {
+	if p.rules.CanSelectWithoutFrom && p.tok == token.EOS {
 		return stmt
 	}
 
@@ -158,27 +158,27 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 		stmt.From.Quoted = true
 		p.next()
 	default:
-		p.expected("table_name")
+		p.expected("a table name")
 	}
 
 	if p.tok == token.WHERE {
-		panic("TODO: Parse WHERE")
+		panic("TODO: parse WHERE")
 	}
 
 	if p.tok == token.GROUP {
-		panic("TODO: Parse GROUP BY")
+		panic("TODO: parse GROUP BY")
 	}
 
 	if p.tok == token.HAVING {
-		panic("TODO: Parse HAVING")
+		panic("TODO: parse HAVING")
 	}
 
 	if p.tok == token.ORDER {
-		panic("TODO: Parse ORDER")
+		panic("TODO: parse ORDER")
 	}
 
 	if p.tok == token.LIMIT {
-		panic("TODO: Parse LIMIT")
+		panic("TODO: parse LIMIT")
 	}
 
 	return stmt
@@ -187,12 +187,12 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 func (p *Parser) parseInsert() *ast.InsertStmt {
 	p.expect(token.INSERT)
 	p.expect(token.INTO)
-	panic("TODO: Parse INSERT")
+	panic("TODO: parse INSERT")
 }
 
 func (p *Parser) parseUpdate() *ast.UpdateStmt {
 	p.expect(token.UPDATE)
-	panic("TODO: Parse UPDATE")
+	panic("TODO: parse UPDATE")
 }
 
 func (p *Parser) parseExpression() ast.Expr {
@@ -206,6 +206,6 @@ func (p *Parser) parseExpression() ast.Expr {
 		p.next()
 		return ident
 	default:
-		panic("TODO: Expected ident, expression parsing hasn't been implemented yet")
+		panic("TODO: expected ident, expression parsing hasn't been implemented yet")
 	}
 }

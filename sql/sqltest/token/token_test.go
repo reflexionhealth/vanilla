@@ -55,7 +55,7 @@ func TestLookup(t *testing.T) {
 
 func TestTokenString(t *testing.T) {
 	assert.Equal(t, "Invalid token", INVALID.String())
-	assert.Equal(t, "EOL", EOL.String())
+	assert.Equal(t, "End of statement", EOS.String())
 	assert.Equal(t, "Comment", COMMENT.String())
 
 	assert.Equal(t, "Identifier", IDENT.String())
@@ -93,7 +93,7 @@ func TestTokenString(t *testing.T) {
 
 func TestHasLiteral(t *testing.T) {
 	assert.Equal(t, false, INVALID.HasLiteral())
-	assert.Equal(t, false, EOL.HasLiteral())
+	assert.Equal(t, false, EOS.HasLiteral())
 	assert.Equal(t, true, COMMENT.HasLiteral())
 
 	assert.Equal(t, true, IDENT.HasLiteral())
@@ -125,7 +125,7 @@ func TestHasLiteral(t *testing.T) {
 
 func TestIsKeyword(t *testing.T) {
 	assert.Equal(t, false, INVALID.IsKeyword())
-	assert.Equal(t, false, EOL.IsKeyword())
+	assert.Equal(t, false, EOS.IsKeyword())
 	assert.Equal(t, false, COMMENT.IsKeyword())
 
 	assert.Equal(t, false, IDENT.IsKeyword())
