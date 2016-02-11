@@ -76,10 +76,10 @@ func Forbidden(r *httpserver.Response) {
 	StaticError(r, 403, forbiddenHeader, forbiddenBody)
 }
 
-func NotFound(r *httpserver.Response) {
+func RouteNotFound(r *httpserver.Response) {
 	StaticError(r, 404, notFoundHeader, notFoundBody)
 }
 
-func NoMethod(r *httpserver.Response) {
+func MethodNotSupported(r *httpserver.Response) {
 	StaticError(r, 405, noMethodHeader, noMethodBody)
 }
