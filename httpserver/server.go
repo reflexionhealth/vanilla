@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 type RouteHandler interface {
@@ -36,8 +37,10 @@ type Server struct {
 	contextPool sync.Pool
 	methodTrees routeTrees
 
-	notFoundHandlers HandlersChain
-	noMethodHandlers HandlersChain
+	notFoundHandlers    HandlersChain
+	noMethodHandlers    HandlersChain
+	unavailableHandlers HandlersChain
+	unavailable         int32 // bool used with atomic Load/Store
 }
 
 // New returns a new blank Server instance without any middleware attached
@@ -99,11 +102,32 @@ func (s *Server) addRoute(method, path string, handlers HandlersChain) {
 // NotFound registers a handler chain for requests with a path that does not exist
 func (s *Server) NotFound(handlers ...HandlerFunc) {
 	s.notFoundHandlers = combineHandlers(s.Handlers, handlers)
+	s.notFoundHandlers = combineHandlers(s.Handlers, handlers)
 }
 
 // NoMethod registers a handler chain for requests with a method that isn't allowed for a path
 func (s *Server) NoMethod(handlers ...HandlerFunc) {
 	s.noMethodHandlers = combineHandlers(s.Handlers, handlers)
+}
+
+// Unavailable registers a handler chain for requests received while the server is marked unavailable
+func (s *Server) Unavailable(handlers ...HandlerFunc) {
+	s.unavailableHandlers = combineHandlers(s.Handlers, handlers)
+}
+
+// IsAvailable returns whether the server is available or not.  If the server is not available,
+// the unavailable handler will be called instead of using the normal routing rules.
+func (s *Server) IsAvailable() bool {
+	return atomic.LoadInt32(&s.unavailable) == 0
+}
+
+// SetAvailablity
+func (s *Server) SetAvailablity(available bool) {
+	if available {
+		atomic.StoreInt32(&s.unavailable, 0)
+	} else {
+		atomic.StoreInt32(&s.unavailable, 1)
+	}
 }
 
 // Routes returns a slice of registered routes, including some useful information, such as:
@@ -132,7 +156,6 @@ func iterate(path, method string, routes []RouteInfo, root *node) []RouteInfo {
 
 // Run attaches the server to a http.Server and starts listening and serving HTTP requests.
 // It is a shortcut for http.ListenAndServe(addr, server)
-// Note: this method will block the calling goroutine indefinitely unless an error happens.
 func (s *Server) Run(addr ...string) error {
 	var address string
 	switch len(addr) {
@@ -153,7 +176,6 @@ func (s *Server) Run(addr ...string) error {
 
 // RunTLS attaches the server to a http.Server and starts listening and serving HTTPS (secure) requests.
 // It is a shortcut for http.ListenAndServeTLS(addr, certFile, keyFile, server)
-// Note: this method will block the calling goroutine undefinitelly unless an error happens.
 func (s *Server) RunTLS(addr string, certFile string, keyFile string) (err error) {
 	err = http.ListenAndServeTLS(addr, certFile, keyFile, s)
 	return
@@ -161,7 +183,6 @@ func (s *Server) RunTLS(addr string, certFile string, keyFile string) (err error
 
 // RunUnix attaches the server to a http.Server and starts listening and serving HTTP requests
 // through the specified unix socket (ie. a file).
-// Note: this method will block the calling goroutine undefinitelly unless an error happens.
 func (s *Server) RunUnix(file string) (err error) {
 	os.Remove(file)
 	listener, err := net.Listen("unix", file)
@@ -187,6 +208,17 @@ func (s *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func (s *Server) handleHTTPRequest(c *Context) {
 	method := c.Request.Method
 	path := c.Request.URL.Path
+
+	if !s.IsAvailable() {
+		c.handlers = s.unavailableHandlers
+		c.Params = c.Params[0:0]
+		c.Response.status = 503
+		c.PerformRequest()
+		if !c.Response.Rendered() {
+			c.Response.Text(503, "Service Unavailable")
+		}
+		return
+	}
 
 	// Find root of the tree for the given HTTP method
 	for _, tree := range s.methodTrees {

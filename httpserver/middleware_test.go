@@ -59,9 +59,9 @@ func TestMiddlewareNotFound(t *testing.T) {
 	server.Use(func(c *Context) {
 		signature += "C"
 		c.ContinueRequest()
-		c.ContinueRequest() // we can call Continue (not MustContinue) as much as we want
-		c.ContinueRequest() // we can call Continue (not MustContinue) as much as we want
-		c.ContinueRequest() // we can call Continue (not MustContinue) as much as we want
+		c.ContinueRequest() // we can call ContinueRequest (not PerformRequest) as much as we want
+		c.ContinueRequest() // we can call ContinueRequest (not PerformRequest) as much as we want
+		c.ContinueRequest() // we can call ContinueRequest (not PerformRequest) as much as we want
 		signature += "D"
 	})
 	server.NotFound(func(c *Context) {
@@ -85,7 +85,7 @@ func TestMiddlewareNotFound(t *testing.T) {
 	assert.Equal(t, signature, "ABCDEGHF")
 }
 
-func TestMiddlewareNoMethodEnabled(t *testing.T) {
+func TestMiddlewareNoMethod(t *testing.T) {
 	signature := ""
 	server := New()
 	server.Use(func(c *Context) {
@@ -120,6 +120,51 @@ func TestMiddlewareNoMethodEnabled(t *testing.T) {
 	// TEST
 	assert.Equal(t, w.Code, 405)
 	assert.Equal(t, signature, "ABCDEGHF")
+}
+
+func TestMiddlewareUnavailable(t *testing.T) {
+	var signature string
+	server := New()
+	server.Use(func(c *Context) {
+		signature += "A"
+		c.ContinueRequest()
+		signature += "B"
+	})
+	server.Use(func(c *Context) {
+		signature += "C"
+		c.ContinueRequest()
+		signature += "D"
+	})
+	server.Unavailable(func(c *Context) {
+		signature += "E("
+		c.PerformRequest()
+		signature += ")F"
+	}, func(c *Context) {
+		signature += "G"
+	})
+	server.NoMethod(func(c *Context) { signature += " X " })
+	server.NotFound(func(c *Context) { signature += " Y " })
+	server.GET("/", func(c *Context) { signature += "(Z)" })
+
+	// initially available
+	signature = ""
+	w := request.Perform(server, "GET", "/")
+	assert.Equal(t, w.Code, 200)
+	assert.Equal(t, signature, "ABCD(Z)")
+
+	// made unavailable
+	signature = ""
+	server.SetAvailablity(false)
+	w = request.Perform(server, "GET", "/")
+	assert.Equal(t, w.Code, 503)
+	assert.Equal(t, signature, "ABCDE(G)F")
+
+	// made available
+	signature = ""
+	server.SetAvailablity(true)
+	w = request.Perform(server, "GET", "/")
+	assert.Equal(t, w.Code, 200)
+	assert.Equal(t, signature, "ABCD(Z)")
 }
 
 func TestMiddlewareWrite(t *testing.T) {
