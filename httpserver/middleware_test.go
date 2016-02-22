@@ -154,14 +154,14 @@ func TestMiddlewareUnavailable(t *testing.T) {
 
 	// made unavailable
 	signature = ""
-	server.SetAvailablity(false)
+	server.SetAvailable(false)
 	w = request.Perform(server, "GET", "/")
 	assert.Equal(t, w.Code, 503)
 	assert.Equal(t, signature, "ABCDE(G)F")
 
 	// made available
 	signature = ""
-	server.SetAvailablity(true)
+	server.SetAvailable(true)
 	w = request.Perform(server, "GET", "/")
 	assert.Equal(t, w.Code, 200)
 	assert.Equal(t, signature, "ABCD(Z)")

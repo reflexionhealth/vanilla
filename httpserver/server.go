@@ -122,7 +122,7 @@ func (s *Server) IsAvailable() bool {
 }
 
 // SetAvailablity
-func (s *Server) SetAvailablity(available bool) {
+func (s *Server) SetAvailable(available bool) {
 	if available {
 		atomic.StoreInt32(&s.unavailable, 0)
 	} else {

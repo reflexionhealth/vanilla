@@ -41,7 +41,7 @@ func TestForbidden(t *testing.T) {
 
 func TestNotFound(t *testing.T) {
 	r := httpserver.New()
-	r.GET("/", func(c *httpserver.Context) { NotFound(&c.Response) })
+	r.GET("/", func(c *httpserver.Context) { RouteNotFound(&c.Response) })
 
 	w := request.Perform(r, "GET", "/")
 	assert.Equal(t, w.Code, 404)
@@ -51,7 +51,7 @@ func TestNotFound(t *testing.T) {
 
 func TestNoMethod(t *testing.T) {
 	r := httpserver.New()
-	r.GET("/", func(c *httpserver.Context) { NoMethod(&c.Response) })
+	r.GET("/", func(c *httpserver.Context) { MethodNotSupported(&c.Response) })
 
 	w := request.Perform(r, "GET", "/")
 	assert.Equal(t, w.Code, 405)
