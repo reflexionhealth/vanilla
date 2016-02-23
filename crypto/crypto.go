@@ -116,7 +116,7 @@ func LoadPrivateKey(path string) (PrivateKey, error) {
 
 	block, _ := pem.Decode(data) // ignoring remaining data
 	switch PemType(block.Type) {
-	case PemPkcs8:
+	case PemPkcs8Info:
 		return x509.ParsePKCS8PrivateKey(block.Bytes)
 	case PemRsaPrivate:
 		return x509.ParsePKCS1PrivateKey(block.Bytes)
