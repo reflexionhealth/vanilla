@@ -21,6 +21,10 @@ const (
 	Sha256WithRsa = x509.SHA256WithRSA
 )
 
+// Redeclare so they don't have to be imported
+type Certificate *x509.Certificate
+type PrivateKey builtin.PrivateKey
+
 type PemType string
 
 const (
@@ -47,7 +51,7 @@ const (
 // because PSS is still doesn't seem widely supported/tested in the wild (Feb 2016),
 // and additionally there are no known defects of PKCS1 v1.5.
 // To sign with PSS, import the crypto/rsa and use rsa.SignPSS/VerifyPSS.
-func SignSha256(key builtin.PrivateKey, msg []byte) (signature []byte, err error) {
+func SignSha256(key PrivateKey, msg []byte) (signature []byte, err error) {
 	digest := sha256.Sum256(msg)
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
@@ -78,7 +82,7 @@ func MustGenerateRsaKey(size int) *rsa.PrivateKey {
 }
 
 // LoadCertificate loads an X509 certificate in PEM format.
-func LoadCertificate(path string) (*x509.Certificate, error) {
+func LoadCertificate(path string) (Certificate, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -94,7 +98,7 @@ func LoadCertificate(path string) (*x509.Certificate, error) {
 
 // MustLoadCertificate is like LoadCertificate but panics if the key cannot be loaded.
 // It simplifies safe intialization of global variables.
-func MustLoadCertificate(path string) *x509.Certificate {
+func MustLoadCertificate(path string) Certificate {
 	cert, err := LoadCertificate(path)
 	if err != nil {
 		panic(err)
@@ -104,7 +108,7 @@ func MustLoadCertificate(path string) *x509.Certificate {
 
 // LoadPrivateKey loads an RSA or ECDSA private key in PEM format.
 // It may be wrapped in unencrypted PKCS8 format, but DES keys are not supported.
-func LoadPrivateKey(path string) (builtin.PrivateKey, error) {
+func LoadPrivateKey(path string) (PrivateKey, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -125,7 +129,7 @@ func LoadPrivateKey(path string) (builtin.PrivateKey, error) {
 
 // MustLoadPrivateKey is like LoadPrivateKey but panics if the key cannot be loaded.
 // It simplifies safe intialization of global variables.
-func MustLoadPrivateKey(path string) builtin.PrivateKey {
+func MustLoadPrivateKey(path string) PrivateKey {
 	key, err := LoadPrivateKey(path)
 	if err != nil {
 		panic(err)
@@ -134,7 +138,7 @@ func MustLoadPrivateKey(path string) builtin.PrivateKey {
 }
 
 type KeyTypeError struct {
-	Key builtin.PrivateKey
+	Key PrivateKey
 }
 
 func (err *KeyTypeError) Error() string {
