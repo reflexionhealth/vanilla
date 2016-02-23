@@ -79,3 +79,11 @@ func (d *Dialect) Insert(insertion string) *InsertStmt {
 func (d *Dialect) InsertColumns(columns []Column) *InsertStmt {
 	return InsertColumns(columns).Dialect(d)
 }
+
+func (d *Dialect) Update(name string) *UpdateStmt {
+	return Update(columns).Dialect(d)
+}
+
+func (d *Dialect) UpdateTable(table Table) *UpdateStmt {
+	return UpdateTable(table).Dialect(d)
+}

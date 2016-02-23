@@ -408,6 +408,39 @@ func (is *InsertStmt) Args() []interface{} {
 	return is.arguments
 }
 
+type UpdateStmt struct {
+	dialect   *Dialect
+	table     string
+	insertion string
+	columns   []Column
+	values []interface{}
+
+	values  int
+	records int
+}
+
+func (us *UpdateStmt) Dialect(dialect *Dialect) *UpdateStmt {
+	us.dialect = dialect
+	return us
+}
+
+func SetColumn(string columnname, string value) *UpdateStmt {
+	return &UpdateStmt{nil, "", "", columns, nil, len(columns), 0}
+}
+
+func (us *UpdateStmt) Sql() string {
+	dct := useDialect(us.dialect)
+	qry := bytes.Buffer{}
+	qry.WriteString("UPDATE ")
+	dct.WriteIdentifier(&qry, us.table)
+	qry.WriteString(" SET ")
+
+	return qry.String()
+}
+
+func (us *UpdateStmt) Args() []interface{} {
+	return us.arguments
+}
 // A ColumnsFlag is a flag which controls how Columns and ColumnNames interpret
 // struct fields as columns.
 type ColumnsFlag int
