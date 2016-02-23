@@ -31,3 +31,19 @@ func MaxU8(a uint8, b uint8) uint8 {
 		return b
 	}
 }
+
+func MinInt(a int, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func MaxInt(a int, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
