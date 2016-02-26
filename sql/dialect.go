@@ -81,7 +81,7 @@ func (d *Dialect) InsertColumns(columns []Column) *InsertStmt {
 }
 
 func (d *Dialect) Update(name string) *UpdateStmt {
-	return Update(columns).Dialect(d)
+	return Update(name).Dialect(d)
 }
 
 func (d *Dialect) UpdateTable(table Table) *UpdateStmt {

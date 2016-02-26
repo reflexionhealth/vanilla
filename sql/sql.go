@@ -408,15 +408,26 @@ func (is *InsertStmt) Args() []interface{} {
 	return is.arguments
 }
 
+// UpdateStmt is an expression builder for statements of the form:
+//
+//   UPDATE table SET columns ...
+//
+// TODO: Tests for UpdateStmt et al.
 type UpdateStmt struct {
-	dialect   *Dialect
-	table     string
-	insertion string
-	columns   []Column
-	values []interface{}
+	dialect         *Dialect
+	table           string
+	columns         []string
+	columnValues    []interface{}
+	conditions      []string
+	conditionValues []interface{}
+}
 
-	values  int
-	records int
+func Update(name string) *UpdateStmt {
+	return &UpdateStmt{nil, name, nil, nil, nil, nil}
+}
+
+func UpdateTable(table Table) *UpdateStmt {
+	return Update(table.Name)
 }
 
 func (us *UpdateStmt) Dialect(dialect *Dialect) *UpdateStmt {
@@ -424,8 +435,16 @@ func (us *UpdateStmt) Dialect(dialect *Dialect) *UpdateStmt {
 	return us
 }
 
-func SetColumn(string columnname, string value) *UpdateStmt {
-	return &UpdateStmt{nil, "", "", columns, nil, len(columns), 0}
+func (us *UpdateStmt) Set(name string, value interface{}) *UpdateStmt {
+	us.columns = append(us.columns, name)
+	us.columnValues = append(us.columnValues, value)
+	return us
+}
+
+func (us *UpdateStmt) Where(condition string, args ...interface{}) *UpdateStmt {
+	us.conditions = append(us.conditions, condition)
+	us.conditionValues = append(us.conditionValues, args...)
+	return us
 }
 
 func (us *UpdateStmt) Sql() string {
@@ -434,13 +453,35 @@ func (us *UpdateStmt) Sql() string {
 	qry.WriteString("UPDATE ")
 	dct.WriteIdentifier(&qry, us.table)
 	qry.WriteString(" SET ")
+	argn := 0
 
+	for i, col := range us.columns {
+		if i > 0 {
+			qry.WriteString(", ")
+		}
+		dct.WriteIdentifier(&qry, col)
+		qry.WriteString(" = ")
+		argn += 1
+		qry.WriteString(dct.Placeholder(argn))
+	}
+	if len(us.conditions) > 0 {
+		qry.WriteString(" WHERE ")
+
+		for i, cond := range us.conditions {
+			if i > 0 {
+				qry.WriteString(", ")
+			}
+			qry.WriteString(cond)
+		}
+
+	}
 	return qry.String()
 }
 
 func (us *UpdateStmt) Args() []interface{} {
-	return us.arguments
+	return append(us.columnValues, us.conditionValues...)
 }
+
 // A ColumnsFlag is a flag which controls how Columns and ColumnNames interpret
 // struct fields as columns.
 type ColumnsFlag int
