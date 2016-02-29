@@ -41,6 +41,8 @@ type Server struct {
 	noMethodHandlers    HandlersChain
 	unavailableHandlers HandlersChain
 	unavailable         int32 // bool used with atomic Load/Store
+
+	DebugEnabled bool
 }
 
 // New returns a new blank Server instance without any middleware attached
@@ -121,7 +123,8 @@ func (s *Server) IsAvailable() bool {
 	return atomic.LoadInt32(&s.unavailable) == 0
 }
 
-// SetAvailablity
+// SetAvailable toggles whether the server is available or not.  If the server is not available,
+// the unavailable handler will be called instead of using the normal routing rules.
 func (s *Server) SetAvailable(available bool) {
 	if available {
 		atomic.StoreInt32(&s.unavailable, 0)
@@ -199,6 +202,7 @@ func (s *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	c := s.contextPool.Get().(*Context)
 	c.Clear(res)
 	c.Request = req
+	c.Debug = s.DebugEnabled
 
 	s.handleHTTPRequest(c)
 

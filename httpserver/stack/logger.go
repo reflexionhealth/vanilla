@@ -28,18 +28,18 @@ const (
 	LogTimeFormat = "2006/01/02 - 15:04:05"
 )
 
-var Logger = NewRflxLogger(os.Stdout)
+var Logger = NewStackLogger(os.Stdout)
 
-// RflxLogger stores log output in memory for a given request context so that log
+// StackLogger stores log output in memory for a given request context so that log
 // output for the given request is sequential in the final log.
 // This makes it easier to gobble up all the information for a single request with Logstash.
-type RflxLogger struct {
+type StackLogger struct {
 	Global *log.Logger
 	Pool   sync.Pool
 }
 
-func NewRflxLogger(out io.Writer) *RflxLogger {
-	logger := &RflxLogger{log.New(out, "", 0), sync.Pool{}}
+func NewStackLogger(out io.Writer) *StackLogger {
+	logger := &StackLogger{log.New(out, "", 0), sync.Pool{}}
 	logger.Pool.New = newRequestLog
 	return logger
 }
@@ -54,7 +54,7 @@ func newRequestLog() interface{} {
 	return &RequestLog{log.New(buffer, "", 0), buffer}
 }
 
-func (l *RflxLogger) Logf(c *httpserver.Context, format string, args ...interface{}) {
+func (l *StackLogger) Logf(c *httpserver.Context, format string, args ...interface{}) {
 	logPtr, exists := c.GetLocal("Log")
 	if exists {
 		logger := logPtr.(*RequestLog)
@@ -64,27 +64,43 @@ func (l *RflxLogger) Logf(c *httpserver.Context, format string, args ...interfac
 	}
 }
 
-func (l *RflxLogger) LogValue(c *httpserver.Context, name string, value interface{}) {
+func (l *StackLogger) LogValue(c *httpserver.Context, name string, value interface{}) {
 	logPtr, exists := c.GetLocal("Log")
 	if exists {
 		logger := logPtr.(*RequestLog)
-		logger.Printf(" -- %s%s:%s %v\n", AnsiBold, name, AnsiReset, value)
+		if c.Debug {
+			logger.Printf(" -- %s%s:%s %v\n", AnsiBold, name, AnsiReset, value)
+		} else {
+			logger.Printf(" -- %s: %v\n", name, value)
+		}
 	} else {
 		// LogValue should only be called after the LogRequest middleware,
 		// Print out a [?] if we don't have a "Log" local
-		Logger.Global.Printf("[?] %s%s:%s %v\n", AnsiBold, name, AnsiReset, value)
+		if c.Debug {
+			Logger.Global.Printf("[?] %s%s:%s %v\n", AnsiBold, name, AnsiReset, value)
+		} else {
+			Logger.Global.Printf("[?] %s: %v\n", name, value)
+		}
 	}
 }
 
-func (l *RflxLogger) LogResponse(c *httpserver.Context, status string, value interface{}) {
+func (l *StackLogger) LogResponse(c *httpserver.Context, status string, value interface{}) {
 	logPtr, exists := c.GetLocal("Log")
 	if exists {
 		logger := logPtr.(*RequestLog)
-		logger.Printf(" -> %s%s:%s %v\n", AnsiBold, status, AnsiReset, value)
+		if c.Debug {
+			logger.Printf(" -> %s%s:%s %v\n", AnsiBold, status, AnsiReset, value)
+		} else {
+			logger.Printf(" -> %s: %v\n", status, value)
+		}
 	} else {
 		// LogValue should only be called after the LogRequest middleware,
 		// Print out a [?] if we don't have a "Log" local
-		Logger.Global.Printf("[?] %s%s:%s %v\n", AnsiBold, status, AnsiReset, value)
+		if c.Debug {
+			Logger.Global.Printf("[?] %s%s:%s %v\n", AnsiBold, status, AnsiReset, value)
+		} else {
+			Logger.Global.Printf("[?] %s: %v\n", status, value)
+		}
 	}
 }
 
@@ -127,8 +143,12 @@ func LogRequest(c *httpserver.Context) {
 	latency := end.Sub(start)
 	statusCode := c.Response.Status()
 	statusText := http.StatusText(statusCode)
-	statusColor := colorForStatus(statusCode)
-	request.Printf("Replied with %s%d %s%s in %v\n", statusColor, statusCode, statusText, AnsiReset, latency)
+	if c.Debug {
+		statusColor := colorForStatus(statusCode)
+		request.Printf("Replied with %s%d %s%s in %v\n", statusColor, statusCode, statusText, AnsiReset, latency)
+	} else {
+		request.Printf("Replied with %d %s in %v\n", statusCode, statusText, latency)
+	}
 
 	// Write log
 	Logger.Global.Print(request.Buffer.String())

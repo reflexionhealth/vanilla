@@ -16,6 +16,7 @@ type Context struct {
 	Response Response
 	Params   Params                 // Params from the path (eg. /thing/:id)
 	Locals   map[string]interface{} // Local values set by middleware
+	Debug    bool
 
 	handlers         HandlersChain
 	nextHandler      HandlerFunc
