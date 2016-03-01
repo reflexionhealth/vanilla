@@ -1,4 +1,4 @@
-package nullable
+package null
 
 import (
 	"database/sql"
@@ -68,7 +68,7 @@ func (ni Int64) MarshalJSON() ([]byte, error) {
 	}
 }
 
-// Time represents a time.Time that doesn't require an extra allocation or dereference
+// Time is a nullable time.Time that doesn't require an extra allocation or dereference
 type Time struct {
 	Time  time.Time
 	Valid bool
@@ -88,7 +88,7 @@ func (nt *Time) Scan(src interface{}) error {
 
 	t, ok := src.(time.Time)
 	if !ok {
-		return errors.New("sql/nullable: scan value for nullable.Time was not a Time or nil")
+		return errors.New("sql/null: scan value for null.Time was not a Time or nil")
 	}
 
 	nt.Valid = true
@@ -114,7 +114,7 @@ func (nt Time) MarshalJSON() ([]byte, error) {
 	}
 }
 
-// Date is a nullable Date that doesn't require an extra allocation or dereference
+// Date is a nullable date.Date that doesn't require an extra allocation or dereference
 type Date struct {
 	Date  date.Date
 	Valid bool
@@ -134,7 +134,7 @@ func (nd *Date) Scan(src interface{}) error {
 
 	t, ok := src.(time.Time)
 	if !ok {
-		return errors.New("sql/nullable: scan value for nullable.Date was not a time.Time or nil")
+		return errors.New("sql/null: scan value for null.Date was not a time.Time or nil")
 	}
 
 	nd.Valid = true

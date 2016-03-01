@@ -10,7 +10,7 @@
 //   math - (WIP) helper library for math operations
 //   semver - (WIP) helper library for working with semantic versioning
 //   sql - utilities to make working with sql in Golang more natural
-//   sql/nullable - nullable types that support both database/sql and encoding/json
+//   sql/null - nullable types that support both database/sql and encoding/json
 package vanilla
 
 import "fmt"
