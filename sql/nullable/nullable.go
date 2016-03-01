@@ -16,6 +16,11 @@ var JsonNull = []byte("null")
 // The builting sql package has a NullString, but it doesn't implement json.Marshaler
 type String sql.NullString
 
+func (ns *String) Set(value string) {
+	ns.Valid = true
+	ns.String = value
+}
+
 // Implement sql.Scanner interface
 func (ns *String) Scan(src interface{}) error {
 	return (*sql.NullString)(ns).Scan(src)
@@ -38,6 +43,11 @@ func (ns String) MarshalJSON() ([]byte, error) {
 // Int64 is a nullable int64 that doesn't require an extra allocation or dereference
 // The builting sql package has a NullInt64, but it doesn't implement json.Marshaler
 type Int64 sql.NullInt64
+
+func (ni *Int64) Set(value int64) {
+	ni.Valid = true
+	ni.Int64 = value
+}
 
 // Implement sql.Scanner interface
 func (ni *Int64) Scan(src interface{}) error {
@@ -62,6 +72,11 @@ func (ni Int64) MarshalJSON() ([]byte, error) {
 type Time struct {
 	Time  time.Time
 	Valid bool
+}
+
+func (nt *Time) Set(value time.Time) {
+	nt.Valid = true
+	nt.Time = value
 }
 
 // Scan implements the sql.Scanner interface.
@@ -103,6 +118,11 @@ func (nt Time) MarshalJSON() ([]byte, error) {
 type Date struct {
 	Date  date.Date
 	Valid bool
+}
+
+func (nd *Date) Set(value date.Date) {
+	nd.Valid = true
+	nd.Date = value
 }
 
 // Implement sql.Scanner interface

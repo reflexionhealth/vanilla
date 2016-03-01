@@ -5,7 +5,9 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"testing"
+	"time"
 
+	"github.com/reflexionhealth/vanilla/date"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,4 +45,26 @@ func TestNullDateRefImplementSqlScanner(t *testing.T) {
 	assert.NotNil(t, scanner)
 	scanner = &Int64{}
 	assert.NotNil(t, scanner)
+}
+
+func TestSetNullable(t *testing.T) {
+	var ns String
+	assert.False(t, ns.Valid)
+	ns.Set("hello world")
+	assert.True(t, ns.Valid)
+
+	var ni Int64
+	assert.False(t, ni.Valid)
+	ni.Set(1)
+	assert.True(t, ni.Valid)
+
+	var nt Time
+	assert.False(t, nt.Valid)
+	nt.Set(time.Now())
+	assert.True(t, nt.Valid)
+
+	var nd Date
+	assert.False(t, nd.Valid)
+	nd.Set(date.From(time.Now()))
+	assert.True(t, nd.Valid)
 }
