@@ -86,13 +86,26 @@ func (nt *Time) Scan(src interface{}) error {
 		return nil
 	}
 
-	t, ok := src.(time.Time)
-	if !ok {
-		return errors.New("sql/null: scan value for null.Time was not a Time or nil")
+	switch t := src.(type) {
+	case string:
+		var err error
+		nt.Time, err = time.Parse("2006-01-02 15:04:05", t)
+		if err != nil {
+			return err
+		}
+	case []byte:
+		var err error
+		nt.Time, err = time.Parse("2006-01-02 15:04:05", string(t))
+		if err != nil {
+			return err
+		}
+	case time.Time:
+		nt.Time = t
+	default:
+		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
 	}
 
 	nt.Valid = true
-	nt.Time = t
 	return nil
 }
 
@@ -132,13 +145,17 @@ func (nd *Date) Scan(src interface{}) error {
 		return nil
 	}
 
-	t, ok := src.(time.Time)
-	if !ok {
-		return errors.New("sql/null: scan value for null.Date was not a time.Time or nil")
+	var nt Time
+	err := nt.Scan(src)
+	if err != nil {
+		return err
 	}
 
-	nd.Valid = true
-	nd.Date = date.From(t)
+	nd.Valid = nt.Valid
+	if nt.Valid {
+		nd.Date = date.From(nt.Time)
+	}
+
 	return nil
 }
 

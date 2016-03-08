@@ -68,3 +68,73 @@ func TestSetNullable(t *testing.T) {
 	nd.Set(date.From(time.Now()))
 	assert.True(t, nd.Valid)
 }
+
+func TestScanNullTime(t *testing.T) {
+	var rawTime = time.Now()
+	var stringTime string = "2010-07-03 13:24:33"
+	var byteTime = []byte(stringTime)
+	var notTime = 3
+
+	var nt Time
+	nt.Scan(rawTime)
+	assert.True(t, nt.Valid)
+	assert.NotNil(t, nt.Time)
+
+	nt.Scan(stringTime)
+	assert.True(t, nt.Valid)
+	assert.NotNil(t, nt.Time)
+	assert.Equal(t, stringTime, nt.Time.Format("2006-01-02 15:04:05"))
+
+	nt.Scan(byteTime)
+	assert.True(t, nt.Valid)
+	assert.NotNil(t, nt.Time)
+	assert.Equal(t, stringTime, nt.Time.Format("2006-01-02 15:04:05"))
+
+	err := nt.Scan(notTime)
+	assert.NotNil(t, err)
+}
+
+func TestScanNullDate(t *testing.T) {
+	var rawTime = time.Now()
+	var stringTime string = "2010-07-03 13:24:33"
+	var stringDate string = "2010-07-03"
+	var byteTime = []byte(stringTime)
+	var byteDate = []byte(stringDate)
+	var notTime = 3
+
+	var nd Date
+	nd.Scan(rawTime)
+	assert.True(t, nd.Valid)
+	assert.NotNil(t, nd.Date)
+
+	nd.Scan(stringTime)
+	assert.True(t, nd.Valid)
+	assert.NotNil(t, nd.Date)
+	assert.Equal(t, 2010, nd.Date.Year)
+	assert.Equal(t, time.July, nd.Date.Month)
+	assert.Equal(t, 3, nd.Date.Day)
+
+	nd.Scan(stringDate)
+	assert.True(t, nd.Valid)
+	assert.NotNil(t, nd.Date)
+	assert.Equal(t, 2010, nd.Date.Year)
+	assert.Equal(t, time.July, nd.Date.Month)
+	assert.Equal(t, 3, nd.Date.Day)
+
+	nd.Scan(byteTime)
+	assert.True(t, nd.Valid)
+	assert.NotNil(t, nd.Date)
+	assert.Equal(t, 2010, nd.Date.Year)
+	assert.Equal(t, time.July, nd.Date.Month)
+	assert.Equal(t, 3, nd.Date.Day)
+
+	nd.Scan(byteDate)
+	assert.True(t, nd.Valid)
+	assert.NotNil(t, nd.Date)
+	assert.Equal(t, 2010, nd.Date.Year)
+	assert.Equal(t, time.July, nd.Date.Month)
+	assert.Equal(t, 3, nd.Date.Day)
+
+	err := nd.Scan(notTime)
+	assert.NotNil(t, err)
+}
