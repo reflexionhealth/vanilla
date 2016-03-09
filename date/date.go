@@ -94,6 +94,17 @@ func (d Date) MarshalJSON() ([]byte, error) {
 	return []byte(d.BeginningOfDayIn(time.UTC).Format(`"2006-01-02"`)), nil
 }
 
+// Implement json.Unmarshaler interface
+func (d Date) UnmarshalJSON(bytes []byte) error {
+	t, err := time.Parse("2006-01-02", string(bytes))
+	if err != nil {
+		return err
+	}
+
+	d = From(t)
+	return nil
+}
+
 func IsLeapYear(year int) bool {
 	return year%4 == 0 && (year%100 != 0 || year%400 == 0)
 }

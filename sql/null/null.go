@@ -176,3 +176,16 @@ func (nd Date) MarshalJSON() ([]byte, error) {
 		return JsonNull, nil
 	}
 }
+
+// Implement json.Unmarshaler interface
+func (nd Date) UnmarshalJSON(bytes []byte) error {
+	if bytes == nil {
+		nd.Valid = false
+		nd.Date = date.Date{}
+		return nil
+	} else {
+		nd.Valid = true
+		err := nd.Date.UnmarshalJSON(bytes)
+		return err
+	}
+}
