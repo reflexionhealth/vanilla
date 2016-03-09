@@ -96,7 +96,7 @@ func (d Date) MarshalJSON() ([]byte, error) {
 
 // Implement json.Unmarshaler interface
 func (d Date) UnmarshalJSON(bytes []byte) error {
-	t, err := time.Parse("2006-01-02", string(bytes))
+	t, err := time.Parse(`"2006-01-02"`, string(bytes))
 	if err != nil {
 		return err
 	}
