@@ -69,6 +69,10 @@ func (d Date) EndOfDayIn(timezone *time.Location) time.Time {
 	return time.Date(d.Year, d.Month, d.Day, 23, 59, 59, NanosecondsInSecond-1, timezone)
 }
 
+func (d Date) String() string {
+	return d.BeginningOfDayIn(time.UTC).Format(`"2006-01-02"`)
+}
+
 // Implement sql.Scanner interface
 func (d Date) Scan(src interface{}) error {
 	t, ok := src.(time.Time)
@@ -87,7 +91,7 @@ func (d Date) Value() (driver.Value, error) {
 
 // Implement json.Marshaler interface
 func (d Date) MarshalJSON() ([]byte, error) {
-	return []byte(d.BeginningOfDayIn(time.UTC).Format(`"2006-01-02"`)), nil
+	return []byte(d.String()), nil
 }
 
 func IsLeapYear(year int) bool {
