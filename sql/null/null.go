@@ -43,7 +43,7 @@ func (ns String) MarshalJSON() ([]byte, error) {
 // Implement json.Unmarshaler interface
 func (ns String) UnmarshalJSON(bytes []byte) error {
 	if bytes == nil {
-		nd.Valid = false
+		ns.Valid = false
 		ns.String = ""
 		return nil
 	} else {
