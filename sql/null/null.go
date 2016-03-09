@@ -40,6 +40,18 @@ func (ns String) MarshalJSON() ([]byte, error) {
 	}
 }
 
+// Implement json.Unmarshaler interface
+func (ns String) UnmarshalJSON(bytes []byte) error {
+	if bytes == nil {
+		nd.Valid = false
+		ns.String = ""
+		return nil
+	} else {
+		ns.Valid = true
+		return json.Unmarshal(bytes, ns)
+	}
+}
+
 // Int64 is a nullable int64 that doesn't require an extra allocation or dereference
 // The builting sql package has a NullInt64, but it doesn't implement json.Marshaler
 type Int64 sql.NullInt64
