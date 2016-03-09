@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/reflexionhealth/vanilla/date"
+	"github.com/satori/go.uuid"
 )
 
 var JsonNull = []byte("null")
@@ -200,5 +201,64 @@ func (nd Date) UnmarshalJSON(bytes []byte) error {
 		nd.Valid = true
 		err := nd.Date.UnmarshalJSON(bytes)
 		return err
+	}
+}
+
+// Uuid is a nullable date.Date that doesn't require an extra allocation or dereference
+type Uuid struct {
+	Uuid  uuid.UUID
+	Valid bool
+}
+
+func (id *Uuid) Set(value uuid.UUID) {
+	id.Valid = true
+	id.Uuid = value
+}
+
+// Scan implements the sql.Scanner interface.
+func (id *Uuid) Scan(src interface{}) error {
+	if src == nil {
+		nt.Valid = false
+		return nil
+	}
+
+	switch u := src.(type) {
+	case string:
+		var err error
+		id.Uuid, err = uuid.FromString(u)
+		if err != nil {
+			return err
+		}
+	case []byte:
+		var err error
+		id.Uuid, err = uuid.FromString(string(u))
+		if err != nil {
+			return err
+		}
+	case uuid.UUID:
+		id.Uuid = u
+	default:
+		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
+	}
+
+	id.Valid = true
+	return nil
+}
+
+// Implement sql.driver.Valuer interface
+func (id Uuid) Value() (driver.Value, error) {
+	if !id.Valid {
+		return nil, nil
+	} else {
+		return id.Uuid.Value()
+	}
+}
+
+// Implement json.Marshaler interface
+func (id Uuid) MarshalJSON() ([]byte, error) {
+	if id.Valid {
+		return json.Marshal(id.Uuid)
+	} else {
+		return JsonNull, nil
 	}
 }
