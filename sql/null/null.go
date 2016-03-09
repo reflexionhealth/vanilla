@@ -218,7 +218,7 @@ func (id *Uuid) Set(value uuid.UUID) {
 // Scan implements the sql.Scanner interface.
 func (id *Uuid) Scan(src interface{}) error {
 	if src == nil {
-		nt.Valid = false
+		id.Valid = false
 		return nil
 	}
 
