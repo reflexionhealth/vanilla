@@ -1,7 +1,6 @@
 package null
 
 import (
-	"fmt"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
