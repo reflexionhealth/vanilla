@@ -1,6 +1,7 @@
 package null
 
 import (
+	"fmt"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
@@ -48,7 +49,8 @@ func (ns String) UnmarshalJSON(bytes []byte) error {
 		return nil
 	} else {
 		ns.Valid = true
-		return json.Unmarshal(bytes, ns)
+		err := json.Unmarshal(bytes, &ns.String)
+		return err
 	}
 }
 
