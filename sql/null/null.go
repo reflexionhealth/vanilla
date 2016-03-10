@@ -42,7 +42,7 @@ func (ns String) MarshalJSON() ([]byte, error) {
 }
 
 // Implement json.Unmarshaler interface
-func (ns String) UnmarshalJSON(bytes []byte) error {
+func (ns *String) UnmarshalJSON(bytes []byte) error {
 	if bytes == nil {
 		ns.Valid = false
 		ns.String = ""
@@ -135,9 +135,22 @@ func (nt Time) Value() (driver.Value, error) {
 // Implement json.Marshaler interface
 func (nt Time) MarshalJSON() ([]byte, error) {
 	if nt.Valid {
-		return json.Marshal(nt.Time)
+		return nt.Time.MarshalJSON()
 	} else {
 		return JsonNull, nil
+	}
+}
+
+// Implement json.Unmarshaler interface
+func (nt *Time) UnmarshalJSON(bytes []byte) error {
+	if bytes == nil {
+		nt.Valid = false
+		nt.Time = time.Time{}
+		return nil
+	} else {
+		nt.Valid = true
+		err := nt.Time.UnmarshalJSON(bytes)
+		return err
 	}
 }
 
@@ -160,9 +173,23 @@ func (nd *Date) Scan(src interface{}) error {
 	}
 
 	var nt Time
-	err := nt.Scan(src)
-	if err != nil {
-		return err
+	switch t := src.(type) {
+	case string:
+		var err error
+		nt.Time, err = time.Parse("2006-01-02", t)
+		if err != nil {
+			return err
+		}
+	case []byte:
+		var err error
+		nt.Time, err = time.Parse("2006-01-02", string(t))
+		if err != nil {
+			return err
+		}
+	case time.Time:
+		nt.Time = t
+	default:
+		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
 	}
 
 	nd.Valid = nt.Valid
@@ -192,7 +219,7 @@ func (nd Date) MarshalJSON() ([]byte, error) {
 }
 
 // Implement json.Unmarshaler interface
-func (nd Date) UnmarshalJSON(bytes []byte) error {
+func (nd *Date) UnmarshalJSON(bytes []byte) error {
 	if bytes == nil {
 		nd.Valid = false
 		nd.Date = date.Date{}
