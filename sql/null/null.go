@@ -192,10 +192,8 @@ func (nd *Date) Scan(src interface{}) error {
 		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
 	}
 
-	nd.Valid = nt.Valid
-	if nt.Valid {
-		nd.Date = date.From(nt.Time)
-	}
+	nd.Valid = true
+	nd.Date = date.From(nt.Time)
 
 	return nil
 }
@@ -252,13 +250,31 @@ func (id *Uuid) Scan(src interface{}) error {
 	switch u := src.(type) {
 	case string:
 		var err error
-		id.Uuid, err = uuid.FromString(u)
+
+		switch len(u) {
+		case 32, 36:
+			id.Uuid, err = uuid.FromString(u)
+		case 16:
+			id.Uuid, err = uuid.FromBytes([]byte(u))
+		default:
+			err = errors.New("sql/null: scan value for uuid was not 16, 32, or 36 bytes long")
+		}
+
 		if err != nil {
 			return err
 		}
 	case []byte:
 		var err error
-		id.Uuid, err = uuid.FromString(string(u))
+
+		switch len(u) {
+		case 32, 36:
+			id.Uuid, err = uuid.FromString(string(u))
+		case 16:
+			id.Uuid, err = uuid.FromBytes(u)
+		default:
+			err = errors.New("sql/null: scan value for uuid was not 16, 32, or 36 bytes long")
+		}
+
 		if err != nil {
 			return err
 		}

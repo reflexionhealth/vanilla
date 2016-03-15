@@ -95,7 +95,7 @@ func TestScanNullTime(t *testing.T) {
 }
 
 func TestScanNullDate(t *testing.T) {
-	var rawTime = time.Now()
+	var rawTime = time.Date(2010, time.July, 3, 13, 24, 33, 999, time.UTC)
 	var stringTime string = "2010-07-03 13:24:33"
 	var stringDate string = "2010-07-03"
 	var byteTime = []byte(stringTime)
