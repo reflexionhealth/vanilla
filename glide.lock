@@ -1,6 +1,8 @@
-hash: 8f8a531e3b606ef8b7ae687bfadcbaceb2a5c964da138b13f18541ef076e08aa
-updated: 2016-02-29T12:11:46.994405228-08:00
+hash: 088b4736921d51fc6d0f3c708e43d598aae6f8955eceeab0a3c0fb6537710b46
+updated: 2016-03-17T15:34:35.035863816-07:00
 imports:
 - name: github.com/gorilla/securecookie
   version: 8dacca26977607e637262eb66b15b7d39f2d3009
+- name: github.com/satori/go.uuid
+  version: e673fdd4dea8a7334adbbe7f57b7e4b00bdc5502
 devImports: []

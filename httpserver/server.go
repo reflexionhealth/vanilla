@@ -28,6 +28,9 @@ type RouteHandler interface {
 	PUT(string, ...HandlerFunc) RouteHandler
 	OPTIONS(string, ...HandlerFunc) RouteHandler
 	HEAD(string, ...HandlerFunc) RouteHandler
+
+	File(string, string) RouteHandler
+	Directory(string, string) RouteHandler
 }
 
 // Server supports configure middleware and routing for a handler

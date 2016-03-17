@@ -7,6 +7,8 @@ package httpserver
 
 import (
 	"math"
+	"net/http"
+	"os"
 	"path"
 	"regexp"
 )
@@ -110,6 +112,44 @@ func (group *RouteGroup) Any(relativePath string, handlers ...HandlerFunc) Route
 	group.handle("DELETE", relativePath, handlers)
 	group.handle("CONNECT", relativePath, handlers)
 	group.handle("TRACE", relativePath, handlers)
+	return group.returnObj()
+}
+
+type httpDirectory struct{ fs http.FileSystem }
+type httpFile struct{ http.File }
+
+func (dir httpDirectory) Open(name string) (http.File, error) {
+	file, err := dir.fs.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	return httpFile{file}, nil
+}
+
+func (f httpFile) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, nil // disables directory listing
+}
+
+// File registers a single route in order to server a single file of the local filesystem.
+// eg. router.File("favicon.ico", "./resources/favicon.ico")
+func (group *RouteGroup) File(relativePath, filepath string) RouteHandler {
+	handler := func(c *Context) { http.ServeFile(c.Response, c.Request, filepath) }
+	group.GET(relativePath, handler)
+	group.HEAD(relativePath, handler)
+	return group.returnObj()
+}
+
+// Directory serves files from the given file system directory.
+// eg. router.Directory("/", "/var/www")
+func (group *RouteGroup) Directory(relativePath, root string) RouteHandler {
+	absolutePath := group.absolutePath(relativePath)
+	url := path.Join(relativePath, "/*filepath")
+	files := httpDirectory{http.Dir(root)}
+	server := http.StripPrefix(absolutePath, http.FileServer(files))
+	handler := func(c *Context) { server.ServeHTTP(c.Response, c.Request) }
+
+	group.GET(url, handler)
+	group.HEAD(url, handler)
 	return group.returnObj()
 }
 
