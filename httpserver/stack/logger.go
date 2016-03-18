@@ -104,6 +104,16 @@ func (l *StackLogger) LogResponse(c *httpserver.Context, status string, value in
 	}
 }
 
+func LogAccess(c *httpserver.Context) {
+	now := time.Now().Format(LogTimeFormat)
+	path := c.Request.URL.Path
+	method := c.Request.Method
+	clientIP := c.ClientIP()
+
+	Logger.Global.Printf("Received %s \"%s\" from %s at %v\n", method, path, clientIP, now)
+	c.ContinueRequest()
+}
+
 func LogRequest(c *httpserver.Context) {
 	start := time.Now()
 	path := c.Request.URL.Path
