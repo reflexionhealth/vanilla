@@ -65,6 +65,12 @@ func (group *RouteGroup) Handle(httpMethod, relativePath string, handlers ...Han
 	return group.handle(httpMethod, relativePath, handlers)
 }
 
+// HandleRaw registers a new request handler using a normal http.Handler
+func (group *RouteGroup) HandleRaw(httpMethod, relativePath string, raw http.Handler) RouteHandler {
+	handler := func(c *Context) { raw.ServeHTTP(&c.Response, c.Request) }
+	return group.Handle(httpMethod, relativePath, handler)
+}
+
 // Get is a shortcut for server.Handle("GET", path, handle)
 func (group *RouteGroup) GET(relativePath string, handlers ...HandlerFunc) RouteHandler {
 	return group.handle("GET", relativePath, handlers)
@@ -115,6 +121,12 @@ func (group *RouteGroup) Any(relativePath string, handlers ...HandlerFunc) Route
 	return group.returnObj()
 }
 
+// AnyRaw registers a route matching all methods, but handled with a raw http.Handler
+func (group *RouteGroup) AnyRaw(relativePath string, raw http.Handler) RouteHandler {
+	handler := func(c *Context) { raw.ServeHTTP(&c.Response, c.Request) }
+	return group.Any(relativePath, handler)
+}
+
 type httpDirectory struct{ fs http.FileSystem }
 type httpFile struct{ http.File }
 
@@ -133,7 +145,7 @@ func (f httpFile) Readdir(count int) ([]os.FileInfo, error) {
 // File registers a single route in order to server a single file of the local filesystem.
 // eg. router.File("favicon.ico", "./resources/favicon.ico")
 func (group *RouteGroup) File(relativePath, filepath string) RouteHandler {
-	handler := func(c *Context) { http.ServeFile(c.Response, c.Request, filepath) }
+	handler := func(c *Context) { http.ServeFile(&c.Response, c.Request, filepath) }
 	group.GET(relativePath, handler)
 	group.HEAD(relativePath, handler)
 	return group.returnObj()
@@ -146,7 +158,7 @@ func (group *RouteGroup) Directory(relativePath, root string) RouteHandler {
 	url := path.Join(relativePath, "/*filepath")
 	files := httpDirectory{http.Dir(root)}
 	server := http.StripPrefix(absolutePath, http.FileServer(files))
-	handler := func(c *Context) { server.ServeHTTP(c.Response, c.Request) }
+	handler := func(c *Context) { server.ServeHTTP(&c.Response, c.Request) }
 
 	group.GET(url, handler)
 	group.HEAD(url, handler)

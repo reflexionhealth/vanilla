@@ -19,7 +19,9 @@ type RouteHandler interface {
 	Use(...HandlerFunc) RouteHandler
 
 	Handle(string, string, ...HandlerFunc) RouteHandler
+	HandleRaw(string, string, http.Handler) RouteHandler
 	Any(string, ...HandlerFunc) RouteHandler
+	AnyRaw(string, http.Handler) RouteHandler
 
 	GET(string, ...HandlerFunc) RouteHandler
 	POST(string, ...HandlerFunc) RouteHandler

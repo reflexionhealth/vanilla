@@ -45,7 +45,7 @@ func MustEncryptCookie(c *httpserver.Context, maxAge int, name string, value int
 		cookie.Expires = time.Unix(1, 0) // expires now
 	}
 
-	http.SetCookie(c.Response, &cookie)
+	http.SetCookie(&c.Response, &cookie)
 }
 
 // ProtectCookies provides cookie storage with XSRF Protection
@@ -73,7 +73,7 @@ func ProtectCookies(key []byte) httpserver.HandlerFunc {
 
 		// set the new xsrf token
 		nextCookie := http.Cookie{Name: CookieXSRFToken, Value: maskToken(realToken), HttpOnly: true, Secure: true}
-		http.SetCookie(c.Response, &nextCookie)
+		http.SetCookie(&c.Response, &nextCookie)
 
 		// if its not a safe method, check the XSRF-TOKEN
 		if !contains(safeMethods, c.Request.Method) {

@@ -6,8 +6,11 @@ package httpserver
 // Modifications by Kevin Stenerson for Reflexion Health Inc. Copyright 2015
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 )
 
@@ -77,4 +80,31 @@ func (r *Response) Clear(writer http.ResponseWriter) {
 	r.ResponseWriter = writer
 	r.rendered = false
 	r.status = 200
+}
+
+// Override http.ResponseWriter's WriteHeader method
+func (r *Response) WriteHeader(status int) {
+	r.rendered = true
+	r.ResponseWriter.WriteHeader(status)
+}
+
+// Implements the http.Hijacker interface
+func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := r.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("the ResponseWriter doesn't support the Hijacker interface")
+	}
+	return hijacker.Hijack()
+}
+
+// Implements the http.CloseNotify interface
+func (r *Response) CloseNotify() <-chan bool {
+	return r.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
+
+// Implements the http.Flush interface
+func (r *Response) Flush() {
+	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
 }
