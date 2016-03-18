@@ -89,6 +89,7 @@ func (r *Response) WriteHeader(status int) {
 
 // Implements the http.Hijacker interface
 func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	r.rendered = true
 	hijacker, ok := r.ResponseWriter.(http.Hijacker)
 	if !ok {
 		return nil, nil, errors.New("the ResponseWriter doesn't support the Hijacker interface")

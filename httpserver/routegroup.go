@@ -159,7 +159,6 @@ func (group *RouteGroup) Directory(relativePath, root string) RouteHandler {
 	files := httpDirectory{http.Dir(root)}
 	server := http.StripPrefix(absolutePath, http.FileServer(files))
 	handler := func(c *Context) { server.ServeHTTP(&c.Response, c.Request) }
-
 	group.GET(url, handler)
 	group.HEAD(url, handler)
 	return group.returnObj()
