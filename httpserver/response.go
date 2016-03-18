@@ -72,8 +72,6 @@ func (r *Response) Render(status int, contentType string) {
 		r.ResponseWriter.Header().Set(HeaderContentType, contentType)
 	}
 	r.ResponseWriter.WriteHeader(status)
-	r.rendered = true
-	r.status = status
 }
 
 func (r *Response) Clear(writer http.ResponseWriter) {
@@ -84,6 +82,7 @@ func (r *Response) Clear(writer http.ResponseWriter) {
 
 // Override http.ResponseWriter's WriteHeader method
 func (r *Response) WriteHeader(status int) {
+	r.status = status
 	r.rendered = true
 	r.ResponseWriter.WriteHeader(status)
 }
