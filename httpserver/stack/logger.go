@@ -25,7 +25,7 @@ const (
 	AnsiReset = "\x1b[0m"
 	AnsiBold  = "\x1b[1m"
 
-	LogTimeFormat = "2006/01/02 - 15:04:05"
+	LogTimeFormat = "2006/01/02 15:04:05"
 )
 
 var Logger = NewStackLogger(os.Stdout)
@@ -105,13 +105,22 @@ func (l *StackLogger) LogResponse(c *httpserver.Context, status string, value in
 }
 
 func LogAccess(c *httpserver.Context) {
-	now := time.Now().Format(LogTimeFormat)
+	start := time.Now()
 	path := c.Request.URL.Path
 	method := c.Request.Method
 	clientIP := c.ClientIP()
 
-	Logger.Global.Printf("Received %s \"%s\" from %s at %v\n", method, path, clientIP, now)
-	c.ContinueRequest()
+	c.PerformRequest()
+
+	end := time.Now()
+	latency := end.Sub(start)
+	status := c.Response.Status()
+
+	Logger.Global.Printf(
+		"%v - Sent %d for %s \"%s\" from %s (in %v)\n",
+		start.Format(LogTimeFormat),
+		status, method, path,
+		clientIP, latency)
 }
 
 func LogRequest(c *httpserver.Context) {
