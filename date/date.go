@@ -20,6 +20,13 @@ type Date struct {
 	Location *time.Location
 }
 
+// Create a Date from Time.Now()
+func Today() Date {
+	t := time.Now()
+	y, m, d := t.Date()
+	return Date{y, m, d, t.Location()}
+}
+
 // Create a Date from a time.Time object
 func From(t time.Time) Date {
 	y, m, d := t.Date()
