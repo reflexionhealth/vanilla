@@ -46,6 +46,26 @@ func (d Date) NextDay() Date {
 	}
 }
 
+// MostRecent returns today if today is the given weekday, otherwise it returns
+// the date of the last day for that weekday.
+//
+// It is useful to get the beginning of the week:
+//
+//    today.MostRecent(time.Sunday) // in the US
+//    today.MostRecent(time.Monday) // officially
+//
+func (d Date) MostRecent(weekday time.Weekday) Date {
+	t := d.BeginningOfDay()
+	today := t.Weekday()
+	if today == weekday {
+		return d
+	} else if today > weekday {
+		return From(t.AddDate(0, 0, int(weekday-today)))
+	} else {
+		return From(t.AddDate(0, 0, int(weekday-today)-7))
+	}
+}
+
 func (d Date) Before(other Date) bool {
 	return (d.Year < other.Year ||
 		(d.Year == other.Year &&
@@ -61,11 +81,15 @@ func (d Date) After(other Date) bool {
 }
 
 func (d Date) AtLeast(other Date) bool {
-	return d == other || d.After(other)
+	return !other.After(d)
 }
 
 func (d Date) AtMost(other Date) bool {
-	return d == other || d.Before(other)
+	return !other.Before(d)
+}
+
+func (d Date) Weekday() time.Weekday {
+	return d.BeginningOfDay().Weekday()
 }
 
 func (d Date) BeginningOfDay() time.Time {
