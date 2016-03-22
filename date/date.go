@@ -14,10 +14,13 @@ const (
 
 // Date is a plain date, without time or timezone info (use time.Time for those!)
 type Date struct {
-	Year     int
-	Month    time.Month
-	Day      int
-	Location *time.Location
+	Year  int
+	Month time.Month
+	Day   int
+
+	// NOTE: time.Time does not preserve timezone when gob encoded
+	// location must be private to support Gob encoding
+	location *time.Location
 }
 
 // Create a Date from Time.Now()
@@ -35,21 +38,21 @@ func From(t time.Time) Date {
 
 func (d Date) PrevDay() Date {
 	if d.Day > 1 {
-		return Date{d.Year, d.Month, d.Day - 1, d.Location}
+		return Date{d.Year, d.Month, d.Day - 1, d.location}
 	} else if d.Month > 1 {
-		return Date{d.Year, d.Month - 1, DaysInMonth(d.Month-1, d.Year), d.Location}
+		return Date{d.Year, d.Month - 1, DaysInMonth(d.Month-1, d.Year), d.location}
 	} else {
-		return Date{d.Year - 1, time.December, 31, d.Location}
+		return Date{d.Year - 1, time.December, 31, d.location}
 	}
 }
 
 func (d Date) NextDay() Date {
 	if d.Day < DaysInMonth(d.Month, d.Year) {
-		return Date{d.Year, d.Month, d.Day + 1, d.Location}
+		return Date{d.Year, d.Month, d.Day + 1, d.location}
 	} else if d.Month < time.December {
-		return Date{d.Year, d.Month + 1, 1, d.Location}
+		return Date{d.Year, d.Month + 1, 1, d.location}
 	} else {
-		return Date{d.Year + 1, time.January, 1, d.Location}
+		return Date{d.Year + 1, time.January, 1, d.location}
 	}
 }
 
@@ -100,7 +103,7 @@ func (d Date) Weekday() time.Weekday {
 }
 
 func (d Date) BeginningOfDay() time.Time {
-	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, d.Location)
+	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, d.location)
 }
 
 func (d Date) BeginningOfDayIn(timezone *time.Location) time.Time {
@@ -108,7 +111,7 @@ func (d Date) BeginningOfDayIn(timezone *time.Location) time.Time {
 }
 
 func (d Date) EndOfDay() time.Time {
-	return time.Date(d.Year, d.Month, d.Day, 23, 59, 59, NanosecondsInSecond-1, d.Location)
+	return time.Date(d.Year, d.Month, d.Day, 23, 59, 59, NanosecondsInSecond-1, d.location)
 }
 
 func (d Date) EndOfDayIn(timezone *time.Location) time.Time {
@@ -119,7 +122,7 @@ func (d Date) String() string {
 	return d.BeginningOfDayIn(time.UTC).Format("2006-01-02")
 }
 
-// Implement sql.Scanner interface
+// Implements sql.Scanner interface
 func (d Date) Scan(src interface{}) error {
 	t, ok := src.(time.Time)
 	if !ok {
@@ -130,17 +133,17 @@ func (d Date) Scan(src interface{}) error {
 	return nil
 }
 
-// Implement sql.driver.Valuer interface
+// Implements sql.driver.Valuer interface
 func (d Date) Value() (driver.Value, error) {
 	return d.BeginningOfDayIn(time.UTC), nil
 }
 
-// Implement json.Marshaler interface
+// Implements json.Marshaler interface
 func (d Date) MarshalJSON() ([]byte, error) {
 	return []byte(d.BeginningOfDayIn(time.UTC).Format(`"2006-01-02"`)), nil
 }
 
-// Implement json.Unmarshaler interface
+// Implements json.Unmarshaler interface
 func (d *Date) UnmarshalJSON(bytes []byte) error {
 	t, err := time.Parse(`"2006-01-02"`, string(bytes))
 	if err != nil {
@@ -150,6 +153,10 @@ func (d *Date) UnmarshalJSON(bytes []byte) error {
 	*d = From(t)
 	return nil
 }
+
+// TODO: Implment gob.GobEncoder and gob.GobDecoder to preserve timezone
+// func (d Date) GobEncode() ([]byte, error) {}
+// func (d *Date) GobDecode(bytes []byte) error {}
 
 func IsLeapYear(year int) bool {
 	return year%4 == 0 && (year%100 != 0 || year%400 == 0)
