@@ -43,7 +43,7 @@ func (ns String) MarshalJSON() ([]byte, error) {
 
 // Implement json.Unmarshaler interface
 func (ns *String) UnmarshalJSON(bytes []byte) error {
-	if bytes == nil {
+	if bytes == nil || string(bytes) == `""` {
 		ns.Valid = false
 		ns.String = ""
 		return nil
@@ -95,8 +95,8 @@ func (nt *Time) Set(value time.Time) {
 
 // Scan implements the sql.Scanner interface.
 func (nt *Time) Scan(src interface{}) error {
+	nt.Valid = false
 	if src == nil {
-		nt.Valid = false
 		return nil
 	}
 
@@ -143,15 +143,18 @@ func (nt Time) MarshalJSON() ([]byte, error) {
 
 // Implement json.Unmarshaler interface
 func (nt *Time) UnmarshalJSON(bytes []byte) error {
-	if bytes == nil {
-		nt.Valid = false
+	nt.Valid = false
+	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
 		nt.Time = time.Time{}
-		return nil
 	} else {
-		nt.Valid = true
 		err := nt.Time.UnmarshalJSON(bytes)
-		return err
+		if err != nil {
+			return err
+		} else {
+			nt.Valid = true
+		}
 	}
+	return nil
 }
 
 // Date is a nullable date.Date that doesn't require an extra allocation or dereference
@@ -167,8 +170,8 @@ func (nd *Date) Set(value date.Date) {
 
 // Implement sql.Scanner interface
 func (nd *Date) Scan(src interface{}) error {
+	nd.Valid = false
 	if src == nil {
-		nd.Valid = false
 		return nil
 	}
 
@@ -194,7 +197,6 @@ func (nd *Date) Scan(src interface{}) error {
 
 	nd.Valid = true
 	nd.Date = date.From(nt.Time)
-
 	return nil
 }
 
@@ -218,15 +220,18 @@ func (nd Date) MarshalJSON() ([]byte, error) {
 
 // Implement json.Unmarshaler interface
 func (nd *Date) UnmarshalJSON(bytes []byte) error {
-	if bytes == nil {
-		nd.Valid = false
+	nd.Valid = false
+	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
 		nd.Date = date.Date{}
-		return nil
 	} else {
-		nd.Valid = true
 		err := nd.Date.UnmarshalJSON(bytes)
-		return err
+		if err != nil {
+			return err
+		} else {
+			nd.Valid = true
+		}
 	}
+	return nil
 }
 
 // Uuid is a nullable date.Date that doesn't require an extra allocation or dereference
@@ -242,8 +247,8 @@ func (id *Uuid) Set(value uuid.UUID) {
 
 // Scan implements the sql.Scanner interface.
 func (id *Uuid) Scan(src interface{}) error {
+	id.Valid = false
 	if src == nil {
-		id.Valid = false
 		return nil
 	}
 
