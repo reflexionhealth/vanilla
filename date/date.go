@@ -53,6 +53,21 @@ func (d Date) Before(other Date) bool {
 				(d.Month == other.Month && d.Day < other.Day))))
 }
 
+func (d Date) After(other Date) bool {
+	return (d.Year > other.Year ||
+		(d.Year == other.Year &&
+			(d.Month > other.Month ||
+				(d.Month == other.Month && d.Day > other.Day))))
+}
+
+func (d Date) AtLeast(other Date) bool {
+	return d == other || d.After(other)
+}
+
+func (d Date) AtMost(other Date) bool {
+	return d == other || d.Before(other)
+}
+
 func (d Date) BeginningOfDay() time.Time {
 	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, d.Location)
 }
