@@ -99,7 +99,7 @@ func TestUnmarshalNullDate(t *testing.T) {
 	var jsonNull string = `null`
 	var jsonEmpty string = `""`
 	var stringDate string = `"2010-07-03"`
-	var stringTime string = `"2010-07-03 13:24:33"`
+	var stringTime string = `"2010-07-03T13:24:33"`
 	var stringBogus string = `"bogus"`
 
 	var nd Date
