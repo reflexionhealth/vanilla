@@ -310,3 +310,19 @@ func (id Uuid) MarshalJSON() ([]byte, error) {
 		return JsonNull, nil
 	}
 }
+
+// Implement json.Unmarshaler interface
+func (id *Uuid) UnmarshalJSON(bytes []byte) error {
+	id.Valid = false
+	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
+		id.Uuid = uuid.UUID{} //date.Date{}
+	} else {
+		err := json.Unmarshal(bytes, &id.Uuid)
+		if err != nil {
+			return err
+		} else {
+			id.Valid = true
+		}
+	}
+	return nil
+}
