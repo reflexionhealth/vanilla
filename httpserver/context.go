@@ -63,23 +63,23 @@ func (c *Context) Clear(res http.ResponseWriter) {
 	c.nextHandlerIndex = 0
 }
 
-// ClientIP implements a best effort algorithm to return the real client IP, it parses
+// ClientIp implements a best effort algorithm to return the real client IP, it parses
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
-func (c *Context) ClientIP() string {
+func (c *Context) ClientIp() string {
 	// Try X-Real-Ip
-	clientIP := strings.TrimSpace(c.Request.Header.Get("X-Real-Ip"))
-	if len(clientIP) > 0 {
-		return clientIP
+	clientIp := strings.TrimSpace(c.Request.Header.Get("X-Real-Ip"))
+	if len(clientIp) > 0 {
+		return clientIp
 	}
 
 	// Try X-Forwarded-For
-	clientIP = c.Request.Header.Get("X-Forwarded-For")
-	if index := strings.IndexByte(clientIP, ','); index >= 0 {
-		clientIP = clientIP[0:index]
+	clientIp = c.Request.Header.Get("X-Forwarded-For")
+	if index := strings.IndexByte(clientIp, ','); index >= 0 {
+		clientIp = clientIp[0:index]
 	}
-	clientIP = strings.TrimSpace(clientIP)
-	if len(clientIP) > 0 {
-		return clientIP
+	clientIp = strings.TrimSpace(clientIp)
+	if len(clientIp) > 0 {
+		return clientIp
 	}
 
 	// Try net.http.Request.RemoteAddr
