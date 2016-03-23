@@ -23,6 +23,10 @@ type Date struct {
 	location *time.Location
 }
 
+func At(y int, m time.Month, d int, l *time.Location) Date {
+	return Date{y, m, d, l}
+}
+
 // Create a Date from Time.Now()
 func Today() Date {
 	t := time.Now()
