@@ -291,7 +291,6 @@ func (ss *SelectStmt) Sql() string {
 
 	qry.WriteString(" FROM ")
 	dct.WriteIdentifier(&qry, ss.table)
-	fmt.Println(ss.conditions)
 	if len(ss.conditions) > 0 {
 		qry.WriteString(" WHERE ")
 		for i, cond := range ss.conditions {
