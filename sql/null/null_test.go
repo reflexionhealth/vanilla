@@ -21,6 +21,8 @@ func TestImplementsJsonMarshaller(t *testing.T) {
 	assert.NotNil(t, marshaler)
 	marshaler = Int64{}
 	assert.NotNil(t, marshaler)
+	marshaler = Bool{}
+	assert.NotNil(t, marshaler)
 }
 
 func TestImplementsSqlValuer(t *testing.T) {
@@ -33,6 +35,8 @@ func TestImplementsSqlValuer(t *testing.T) {
 	assert.NotNil(t, valuer)
 	valuer = Int64{}
 	assert.NotNil(t, valuer)
+	valuer = Bool{}
+	assert.NotNil(t, valuer)
 }
 
 func TestNullDateRefImplementSqlScanner(t *testing.T) {
@@ -44,6 +48,8 @@ func TestNullDateRefImplementSqlScanner(t *testing.T) {
 	scanner = &String{}
 	assert.NotNil(t, scanner)
 	scanner = &Int64{}
+	assert.NotNil(t, scanner)
+	scanner = &Bool{}
 	assert.NotNil(t, scanner)
 }
 
@@ -67,6 +73,11 @@ func TestSetNullable(t *testing.T) {
 	assert.False(t, nd.Valid)
 	nd.Set(date.From(time.Now()))
 	assert.True(t, nd.Valid)
+
+	var nb Bool
+	assert.False(t, nb.Valid)
+	nb.Set(true)
+	assert.True(t, nb.Valid)
 }
 
 func TestUnmarshalNullTime(t *testing.T) {

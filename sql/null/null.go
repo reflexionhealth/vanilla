@@ -13,6 +13,47 @@ import (
 
 var JsonNull = []byte("null")
 
+// Bool is a nullable boolean that doesn't require an extra allocation or dereference
+// The builting sql package has a NullBool, but it doesn't implement json.Marshaler
+type Bool sql.NullBool
+
+func (nb *Bool) Set(value bool) {
+	nb.Valid = true
+	nb.Bool = value
+}
+
+// Implement sql.Scanner interface
+func (nb *Bool) Scan(src interface{}) error {
+	return (*sql.NullBool)(nb).Scan(src)
+}
+
+// Implement sql.driver.Valuer interface
+func (nb Bool) Value() (driver.Value, error) {
+	return (sql.NullBool)(nb).Value()
+}
+
+// Implement json.Marshaler interface
+func (nb Bool) MarshalJSON() ([]byte, error) {
+	if nb.Valid {
+		return json.Marshal(nb.Bool)
+	} else {
+		return []byte("null"), nil
+	}
+}
+
+// Implement json.Unmarshaler interface
+func (nb *Bool) UnmarshalJSON(bytes []byte) error {
+	if bytes == nil || string(bytes) == `""` {
+		nb.Valid = false
+		nb.Bool = false
+		return nil
+	} else {
+		nb.Valid = true
+		err := json.Unmarshal(bytes, &nb.Bool)
+		return err
+	}
+}
+
 // String is a nullable string that doesn't require an extra allocation or dereference
 // The builting sql package has a NullString, but it doesn't implement json.Marshaler
 type String sql.NullString
