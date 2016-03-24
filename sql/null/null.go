@@ -43,15 +43,18 @@ func (nb Bool) MarshalJSON() ([]byte, error) {
 
 // Implement json.Unmarshaler interface
 func (nb *Bool) UnmarshalJSON(bytes []byte) error {
-	if bytes == nil || string(bytes) == `""` {
-		nb.Valid = false
+	nb.Valid = false
+	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
 		nb.Bool = false
-		return nil
 	} else {
-		nb.Valid = true
 		err := json.Unmarshal(bytes, &nb.Bool)
-		return err
+		if err != nil {
+			return err
+		} else {
+			nb.Valid = true
+		}
 	}
+	return nil
 }
 
 // String is a nullable string that doesn't require an extra allocation or dereference
@@ -84,15 +87,18 @@ func (ns String) MarshalJSON() ([]byte, error) {
 
 // Implement json.Unmarshaler interface
 func (ns *String) UnmarshalJSON(bytes []byte) error {
-	if bytes == nil || string(bytes) == `""` {
-		ns.Valid = false
+	ns.Valid = false
+	if bytes == nil || string(bytes) == "null" {
 		ns.String = ""
-		return nil
 	} else {
-		ns.Valid = true
 		err := json.Unmarshal(bytes, &ns.String)
-		return err
+		if err != nil {
+			return err
+		} else {
+			ns.Valid = true
+		}
 	}
+	return nil
 }
 
 // Int64 is a nullable int64 that doesn't require an extra allocation or dereference

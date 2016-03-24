@@ -80,6 +80,64 @@ func TestSetNullable(t *testing.T) {
 	assert.True(t, nb.Valid)
 }
 
+func TestUnmarshalNullBool(t *testing.T) {
+	var jsonNull string = `null`
+	var jsonEmpty string = `""`
+	var bogusString string = `"bogus"`
+	var validTrue string = `true`
+	var validFalse string = `false`
+
+	var nb Bool
+	var err error
+	err = json.Unmarshal([]byte(jsonNull), &nb)
+	assert.Nil(t, err)
+	assert.False(t, nb.Valid)
+
+	err = json.Unmarshal([]byte(jsonEmpty), &nb)
+	assert.Nil(t, err)
+	assert.False(t, nb.Valid)
+
+	err = json.Unmarshal([]byte(bogusString), &nb)
+	assert.NotNil(t, err)
+	assert.False(t, nb.Valid)
+
+	err = json.Unmarshal([]byte(validTrue), &nb)
+	assert.Nil(t, err)
+	assert.True(t, nb.Valid)
+
+	err = json.Unmarshal([]byte(validFalse), &nb)
+	assert.Nil(t, err)
+	assert.True(t, nb.Valid)
+}
+
+func TestUnmarshalNullString(t *testing.T) {
+	var jsonNull string = `null`
+	var jsonNumber string = `3`
+	var jsonEmpty string = `""`
+	var validString string = `"foo"`
+
+	var ns String
+	var err error
+	err = json.Unmarshal([]byte(jsonNull), &ns)
+	assert.Nil(t, err)
+	assert.False(t, ns.Valid)
+
+	err = json.Unmarshal([]byte(jsonNumber), &ns)
+	assert.NotNil(t, err)
+	assert.False(t, ns.Valid)
+
+	err = json.Unmarshal([]byte(jsonEmpty), &ns)
+	assert.Nil(t, err)
+	assert.True(t, ns.Valid)
+	assert.Equal(t, "", ns.String)
+
+	err = json.Unmarshal([]byte(validString), &ns)
+	assert.Nil(t, err)
+	assert.True(t, ns.Valid)
+	assert.Equal(t, "foo", ns.String)
+
+}
+
 func TestUnmarshalNullTime(t *testing.T) {
 	var jsonNull string = `null`
 	var jsonEmpty string = `""`
