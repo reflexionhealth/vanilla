@@ -25,6 +25,20 @@ func TestImplementsJsonMarshaller(t *testing.T) {
 	assert.NotNil(t, marshaler)
 }
 
+func TestImplementsJsonUnmarshaller(t *testing.T) {
+	var unmarshaler json.Unmarshaler
+	unmarshaler = Date{}
+	assert.NotNil(t, unmarshaler)
+	unmarshaler = Time{}
+	assert.NotNil(t, unmarshaler)
+	unmarshaler = String{}
+	assert.NotNil(t, unmarshaler)
+	unmarshaler = Int64{}
+	assert.NotNil(t, unmarshaler)
+	unmarshalerarshaler = Bool{}
+	assert.NotNil(t, unmarshaler)
+}
+
 func TestImplementsSqlValuer(t *testing.T) {
 	var valuer driver.Valuer
 	valuer = Date{}
@@ -39,7 +53,7 @@ func TestImplementsSqlValuer(t *testing.T) {
 	assert.NotNil(t, valuer)
 }
 
-func TestNullDateRefImplementSqlScanner(t *testing.T) {
+func TestImplementSqlScanner(t *testing.T) {
 	var scanner sql.Scanner
 	scanner = &Date{}
 	assert.NotNil(t, scanner)
