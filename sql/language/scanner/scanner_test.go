@@ -3,7 +3,7 @@ package scanner
 import (
 	"testing"
 
-	"github.com/reflexionhealth/vanilla/sql/sqltest/token"
+	"github.com/reflexionhealth/vanilla/sql/language/token"
 	"github.com/stretchr/testify/assert"
 )
 

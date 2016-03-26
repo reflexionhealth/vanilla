@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/reflexionhealth/vanilla/sql/sqltest/token"
+	"github.com/reflexionhealth/vanilla/sql/language/token"
 )
 
 // isLetter returns true if the rune matches [A-Za-z_]

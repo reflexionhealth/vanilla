@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/reflexionhealth/vanilla/sql/sqltest/ast"
-	"github.com/reflexionhealth/vanilla/sql/sqltest/scanner"
-	"github.com/reflexionhealth/vanilla/sql/sqltest/token"
+	"github.com/reflexionhealth/vanilla/sql/language/ast"
+	"github.com/reflexionhealth/vanilla/sql/language/scanner"
+	"github.com/reflexionhealth/vanilla/sql/language/token"
 )
 
 // A parser.Ruleset specifies the dialect specific parsing rules for a SQL dialect

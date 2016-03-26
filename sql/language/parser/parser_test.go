@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"github.com/reflexionhealth/vanilla/sql/sqltest/ast"
+	"github.com/reflexionhealth/vanilla/sql/language/ast"
 	"github.com/stretchr/testify/assert"
 )
 

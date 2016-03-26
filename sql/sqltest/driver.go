@@ -6,9 +6,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/reflexionhealth/vanilla/sql/sqltest/ast"
-	"github.com/reflexionhealth/vanilla/sql/sqltest/parser"
-	"github.com/reflexionhealth/vanilla/sql/sqltest/scanner"
+	"github.com/reflexionhealth/vanilla/sql/language/ast"
+	"github.com/reflexionhealth/vanilla/sql/language/parser"
+	"github.com/reflexionhealth/vanilla/sql/language/scanner"
 )
 
 var AnsiRuleset = parser.Ruleset{}
