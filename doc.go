@@ -8,21 +8,21 @@
 //   httpserver - a fork of httpserver's server / gin-gonic's engine that works the way we like
 //   httpserver/stack - utilities and middleware for the reflexion http server
 //   math - (WIP) helper library for math operations
+//   null - nullable types that support database/sql, encoding/gob, and encoding/json
 //   semver - (WIP) helper library for working with semantic versioning
 //   sql - utilities to make working with sql in Golang more natural
-//   sql/null - nullable types that support both database/sql and encoding/json
 package vanilla
 
 import "fmt"
 import "log"
 
 // Logs the error and message with Go's "log" package, but only if the error is not nil.
+// For just MustNotError, you should copy this snippet instead of adding a dependency.
 //
-// Typically, it is easier/cleaner to just copy the following than import this package
-//
+// 	import "fmt"
 // 	import "log"
 //
-// 	func checkf(err error, msg string, args ...interface{}) {
+// 	func MustNotError(err error, msg string, args ...interface{}) {
 // 		if err != nil {
 // 			msg = fmt.Sprintf(msg, args...)
 // 			log.Fatalf("%s: %s", msg, err)

@@ -15,8 +15,8 @@ import (
 
 var JsonNull = []byte("null")
 
-// Bool is a nullable boolean that doesn't require an extra allocation or dereference
-// The builting sql package has a NullBool, but it doesn't implement json.Marshaler
+// Bool is a nullable boolean that doesn't require an extra allocation or dereference.
+// The builting sql package has a NullBool, but it doesn't implement json.Marshaler.
 type Bool sql.NullBool
 
 func (n *Bool) Set(value bool) {
@@ -29,7 +29,7 @@ func (n *Bool) Scan(src interface{}) error {
 	return (*sql.NullBool)(n).Scan(src)
 }
 
-// Implement sql.driver.Valuer interface
+// Implement driver.Valuer interface
 func (n Bool) Value() (driver.Value, error) {
 	return (sql.NullBool)(n).Value()
 }
@@ -59,8 +59,8 @@ func (n *Bool) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// String is a nullable string that doesn't require an extra allocation or dereference
-// The builting sql package has a NullString, but it doesn't implement json.Marshaler
+// String is a nullable string that doesn't require an extra allocation or dereference.
+// The builting sql package has a NullString, but it doesn't implement json.Marshaler.
 type String sql.NullString
 
 func (n *String) Set(value string) {
@@ -73,7 +73,7 @@ func (n *String) Scan(src interface{}) error {
 	return (*sql.NullString)(n).Scan(src)
 }
 
-// Implement sql.driver.Valuer interface
+// Implement driver.Valuer interface
 func (n String) Value() (driver.Value, error) {
 	return (sql.NullString)(n).Value()
 }
@@ -103,8 +103,9 @@ func (n *String) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// Int is a nullable int that doesn't require an extra allocation or dereference
-// The builting sql package has a NullInt, but it doesn't implement json.Marshaler
+// Int is a nullable int that doesn't require an extra allocation or dereference.
+// The builting sql package has a NullInt64, but it doesn't implement json.Marshaler
+// and is an int64 instead of an int.
 type Int struct {
 	Int   int
 	Valid bool
@@ -135,7 +136,7 @@ func (n *Int) Scan(src interface{}) error {
 	return nil
 }
 
-// Implement sql.driver.Valuer interface
+// Implement driver.Valuer interface
 func (n Int) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
@@ -170,7 +171,8 @@ func (n *Int) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// Time is a nullable time.Time that doesn't require an extra allocation or dereference
+// Time is a nullable time.Time that doesn't require an extra allocation or dereference.
+// It supports encoding/decoding with database/sql, encoding/gob, and encoding/json.
 type Time struct {
 	Time  time.Time
 	Valid bool
@@ -181,7 +183,7 @@ func (n *Time) Set(value time.Time) {
 	n.Time = value
 }
 
-// Scan implements the sql.Scanner interface.
+// Implement sql.Scanner interface
 func (n *Time) Scan(src interface{}) error {
 	n.Valid = false
 	if src == nil {
@@ -211,7 +213,7 @@ func (n *Time) Scan(src interface{}) error {
 	return nil
 }
 
-// Value implements the sql.driver.Valuer interface
+// Implement driver.Valuer interface
 func (n Time) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
@@ -245,7 +247,8 @@ func (n *Time) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// Date is a nullable date.Date that doesn't require an extra allocation or dereference
+// Date is a nullable date.Date that doesn't require an extra allocation or dereference.
+// It supports encoding/decoding with database/sql, encoding/gob, and encoding/json.
 type Date struct {
 	Date  date.Date
 	Valid bool
@@ -288,7 +291,7 @@ func (n *Date) Scan(src interface{}) error {
 	return nil
 }
 
-// Implement sql.driver.Valuer interface
+// Implement driver.Valuer interface
 func (n Date) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
@@ -322,7 +325,8 @@ func (n *Date) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// Uuid is a nullable date.Date that doesn't require an extra allocation or dereference
+// Uuid is a nullable date.Date that doesn't require an extra allocation or dereference.
+// It supports encoding/decoding with database/sql, encoding/gob, and encoding/json.
 type Uuid struct {
 	Uuid  uuid.UUID
 	Valid bool
@@ -333,7 +337,7 @@ func (id *Uuid) Set(value uuid.UUID) {
 	id.Uuid = value
 }
 
-// Scan implements the sql.Scanner interface.
+// Implement sql.Scanner interface.
 func (id *Uuid) Scan(src interface{}) error {
 	id.Valid = false
 	if src == nil {
@@ -381,7 +385,7 @@ func (id *Uuid) Scan(src interface{}) error {
 	return nil
 }
 
-// Implement sql.driver.Valuer interface
+// Implement driver.Valuer interface
 func (id Uuid) Value() (driver.Value, error) {
 	if !id.Valid {
 		return nil, nil
