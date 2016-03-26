@@ -1,8 +1,10 @@
 package null
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/gob"
 	"encoding/json"
 	"testing"
 	"time"
@@ -65,6 +67,45 @@ func TestImplementSqlScanner(t *testing.T) {
 	assert.NotNil(t, scanner)
 	scanner = &Bool{}
 	assert.NotNil(t, scanner)
+}
+
+func TestGobEncodeDecode(t *testing.T) {
+	var buf bytes.Buffer
+	// FIXME: preserve date timezone (or use UTC by default? see time.Time)
+	var srcDate, destDate Date
+	srcDate.Set(date.At(2033, 10, 24, nil))
+	assert.Nil(t, gob.NewEncoder(&buf).Encode(srcDate))
+	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destDate))
+	assert.Equal(t, srcDate, destDate)
+	buf.Reset()
+
+	var srcTime, destTime Time
+	srcTime.Set(time.Now())
+	assert.Nil(t, gob.NewEncoder(&buf).Encode(srcTime))
+	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destTime))
+	assert.Equal(t, srcTime, destTime)
+	buf.Reset()
+
+	var srcString, destString String
+	srcString.Set("gobify me")
+	assert.Nil(t, gob.NewEncoder(&buf).Encode(srcString))
+	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destString))
+	assert.Equal(t, srcString, destString)
+	buf.Reset()
+
+	var srcInt, destInt Int
+	srcInt.Set(-154)
+	assert.Nil(t, gob.NewEncoder(&buf).Encode(srcInt))
+	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destInt))
+	assert.Equal(t, srcInt, destInt)
+	buf.Reset()
+
+	var srcBool, destBool Bool
+	srcBool.Set(true)
+	assert.Nil(t, gob.NewEncoder(&buf).Encode(srcBool))
+	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destBool))
+	assert.Equal(t, srcBool, destBool)
+	buf.Reset()
 }
 
 func TestSetNullable(t *testing.T) {
