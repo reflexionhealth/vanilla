@@ -51,4 +51,41 @@ func TestParseSelect(t *testing.T) {
 		assert.Empty(t, slct.Selection)
 		assert.True(t, slct.Star)
 	}
+
+	// disallow unimplmented clauses
+	prsr = Make([]byte(`SELECT * FROM mytable PROCEDURE compute(foo)`), Ruleset{})
+	stmt, err = prsr.ParseStatement()
+	assert.Nil(t, stmt)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "sql:1:32: cannot parse statement; reached unimplemented clause", err.Error())
+	}
+
+	// allow unimplmented clauses if someone says its ok
+	prsr = Make([]byte(`SELECT * FROM mytable PROCEDURE compute(foo)`), Ruleset{AllowNotImplemented: true})
+	stmt, err = prsr.ParseStatement()
+	assert.Nil(t, err)
+	if slct, ok := stmt.(*ast.SelectStmt); assert.True(t, ok) {
+		assert.Equal(t, ast.SELECT_ALL, slct.Type)
+		assert.Equal(t, "mytable", slct.From.Name)
+		assert.Empty(t, slct.Selection)
+		assert.True(t, slct.Star)
+	}
+}
+
+func TestParseInsert(t *testing.T) {
+	prsr := Make([]byte(`INSERT INTO mytable`), Ruleset{})
+	stmt, err := prsr.ParseStatement()
+	assert.Nil(t, stmt)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "sql:1:20: cannot parse statement; reached unimplemented clause", err.Error())
+	}
+}
+
+func TestParseUpdate(t *testing.T) {
+	prsr := Make([]byte(`UPDATE mytable SET a = 1`), Ruleset{})
+	stmt, err := prsr.ParseStatement()
+	assert.Nil(t, stmt)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "sql:1:15: cannot parse statement; reached unimplemented clause", err.Error())
+	}
 }

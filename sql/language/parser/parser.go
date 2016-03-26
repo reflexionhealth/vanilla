@@ -14,6 +14,12 @@ import (
 type Ruleset struct {
 	ScanRules scanner.Ruleset
 
+	// AllowNotImplemented controls whether the parser will barf an error
+	// if it reaches a likely valid part of SQL syntax that just hasn't been
+	// implemented in this parser yet.
+	// Otherwise, it seeks to the end of the statement.
+	AllowNotImplemented bool
+
 	CanSelectDistinctRow bool
 	CanSelectWithoutFrom bool
 }
@@ -52,6 +58,7 @@ func Make(src []byte, rules Ruleset) Parser {
 func (p *Parser) Init(src []byte, rules Ruleset) {
 	scanError := func(pos token.Position, msg string) { p.error(pos, msg) }
 	p.scanner.Init(src, scanError, rules.ScanRules)
+	p.rules = rules
 }
 
 // ParseStatement attempts to parse a statement or returns the first error found
@@ -117,8 +124,6 @@ func (p *Parser) next() {
 		if len(lit) > 7 {
 			lit = lit[0:6] + "~"
 		}
-		// NOTE: For some irritating reason, running `go test` will always
-		//       hide stderr so make sure we use stdout
 		fmt.Printf(" %7.7s : %-14s @ %v:%v\n", lit, p.tok, caller, line)
 	}
 
@@ -154,7 +159,7 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 			stmt.Type = ast.SELECT_DISTINCTROW
 			p.next()
 		} else {
-			p.error(p.scanner.Pos(), `query includes SELECT "DISTINCTROW", but CanSelectDistinctRow is false`)
+			p.error(p.scanner.Pos(), `statement includes SELECT "DISTINCTROW", but CanSelectDistinctRow is false`)
 			p.next()
 		}
 	}
@@ -211,23 +216,21 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 	// 	panic("TODO: parse LIMIT")
 	// }
 
-	// TODO: For now we're just eating everything else until more is implemented
-	for p.tok != token.EOS {
-		p.next()
-	}
-
+	p.eatUnimplemented()
 	return stmt
 }
 
 func (p *Parser) parseInsert() *ast.InsertStmt {
 	p.expect(token.INSERT)
 	p.expect(token.INTO)
-	panic("TODO: parse INSERT")
+	p.eatUnimplemented()
+	return nil
 }
 
 func (p *Parser) parseUpdate() *ast.UpdateStmt {
 	p.expect(token.UPDATE)
-	panic("TODO: parse UPDATE")
+	p.eatUnimplemented()
+	return nil
 }
 
 func (p *Parser) parseExpression() ast.Expr {
@@ -241,6 +244,25 @@ func (p *Parser) parseExpression() ast.Expr {
 		p.next()
 		return ident
 	default:
-		panic("TODO: expected ident, expression parsing hasn't been implemented yet")
+		p.eatUnimplemented()
+		return nil
+	}
+}
+
+// eatUnimplemented eats till the end of statement if AllowsNotImplemented is true
+func (p *Parser) eatUnimplemented() {
+	if !p.rules.AllowNotImplemented && !(p.tok == token.EOS || p.tok == token.SEMICOLON) {
+		p.error(p.scanner.Pos(), `cannot parse statement; reached unimplemented clause`)
+	}
+
+	// eat till the end of statement
+	for p.tok != token.EOS {
+		if p.tok == token.SEMICOLON {
+			p.next()
+			if p.tok != token.EOS {
+				p.error(p.scanner.Pos(), `statement does not end at semicolon`)
+			}
+		}
+		p.next()
 	}
 }

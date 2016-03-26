@@ -13,6 +13,7 @@ import (
 
 var AnsiRuleset = parser.Ruleset{}
 var MysqlRuleset = parser.Ruleset{
+	AllowNotImplemented:  true, // temporary, maybe
 	CanSelectDistinctRow: true,
 	ScanRules: scanner.Ruleset{
 		BacktickIsQuotemark:       true,
