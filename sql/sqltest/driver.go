@@ -8,17 +8,16 @@ import (
 
 	"github.com/reflexionhealth/vanilla/sql/language/ast"
 	"github.com/reflexionhealth/vanilla/sql/language/parser"
-	"github.com/reflexionhealth/vanilla/sql/language/scanner"
 )
 
-var AnsiRuleset = parser.Ruleset{}
-var MysqlRuleset = parser.Ruleset{
-	AllowNotImplemented:  true, // temporary, maybe
-	CanSelectDistinctRow: true,
-	ScanRules: scanner.Ruleset{
-		BacktickIsQuotemark:       true,
-		DoubleQuoteIsNotQuotemark: true,
-	},
+var AnsiRuleset parser.Ruleset
+var MysqlRuleset parser.Ruleset
+
+func init() {
+	AnsiRuleset = parser.AnsiRuleset
+	AnsiRuleset.AllowNotImplemented = true // temporary, maybe
+	MysqlRuleset = parser.MysqlRuleset
+	MysqlRuleset.AllowNotImplemented = true // temporary, maybe
 }
 
 func Register(name string, rules parser.Ruleset) {

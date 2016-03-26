@@ -10,7 +10,7 @@ import (
 	"github.com/reflexionhealth/vanilla/sql/language/token"
 )
 
-// A parser.Ruleset specifies the dialect specific parsing rules for a SQL dialect
+// A Ruleset specifies the dialect specific parsing rules for a SQL dialect
 type Ruleset struct {
 	ScanRules scanner.Ruleset
 
@@ -22,6 +22,15 @@ type Ruleset struct {
 
 	CanSelectDistinctRow bool
 	CanSelectWithoutFrom bool
+}
+
+var AnsiRuleset = Ruleset{}
+var MysqlRuleset = Ruleset{
+	CanSelectDistinctRow: true,
+	ScanRules: scanner.Ruleset{
+		BacktickIsQuotemark:       true,
+		DoubleQuoteIsNotQuotemark: true,
+	},
 }
 
 type ParseError struct {
