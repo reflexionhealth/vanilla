@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/reflexionhealth/vanilla/date"
@@ -101,32 +103,71 @@ func (ns *String) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// Int64 is a nullable int64 that doesn't require an extra allocation or dereference
-// The builting sql package has a NullInt64, but it doesn't implement json.Marshaler
-type Int64 sql.NullInt64
+// Int is a nullable int that doesn't require an extra allocation or dereference
+// The builting sql package has a NullInt, but it doesn't implement json.Marshaler
+type Int struct {
+	Int   int
+	Valid bool
+}
 
-func (ni *Int64) Set(value int64) {
+func (ni *Int) Set(value int) {
 	ni.Valid = true
-	ni.Int64 = value
+	ni.Int = value
 }
 
 // Implement sql.Scanner interface
-func (ni *Int64) Scan(src interface{}) error {
-	return (*sql.NullInt64)(ni).Scan(src)
+func (ni *Int) Scan(src interface{}) error {
+	ni.Valid = false
+	if src == nil {
+		ni.Int = 0
+		return nil
+	}
+	switch t := src.(type) {
+	case string:
+		i64, err := strconv.ParseInt(t, 10, 64)
+		if err != nil {
+			return fmt.Errorf("sql/null: converting driver.Value type %T (%q) to a null.Int: %v", src, t, strconvErr(err))
+		}
+		ni.Set(int(i64))
+	case int64:
+		ni.Set(int(t))
+	}
+	return nil
 }
 
 // Implement sql.driver.Valuer interface
-func (ni Int64) Value() (driver.Value, error) {
-	return (sql.NullInt64)(ni).Value()
+func (ni Int) Value() (driver.Value, error) {
+	if !ni.Valid {
+		return nil, nil
+	} else {
+		return ni.Int, nil
+	}
 }
 
 // Implement json.Marshaler interface
-func (ni Int64) MarshalJSON() ([]byte, error) {
+func (ni Int) MarshalJSON() ([]byte, error) {
 	if ni.Valid {
-		return json.Marshal(ni.Int64)
+		return json.Marshal(ni.Int)
 	} else {
 		return JsonNull, nil
 	}
+}
+
+// Implement json.Unmarshaler interface
+func (ni *Int) UnmarshalJSON(bytes []byte) error {
+	ni.Valid = false
+	if bytes == nil || string(bytes) == "null" {
+		ni.Int = 0
+		return nil
+	}
+
+	err := json.Unmarshal(bytes, &ni.Int)
+	if err != nil {
+		return err
+	}
+
+	ni.Valid = true
+	return nil
 }
 
 // Time is a nullable time.Time that doesn't require an extra allocation or dereference
@@ -372,4 +413,12 @@ func (id *Uuid) UnmarshalJSON(bytes []byte) error {
 		}
 	}
 	return nil
+}
+
+// copied from database/sql/convert.go
+func strconvErr(err error) error {
+	if ne, ok := err.(*strconv.NumError); ok {
+		return ne.Err
+	}
+	return err
 }

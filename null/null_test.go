@@ -19,7 +19,7 @@ func TestImplementsJsonMarshaller(t *testing.T) {
 	assert.NotNil(t, marshaler)
 	marshaler = String{}
 	assert.NotNil(t, marshaler)
-	marshaler = Int64{}
+	marshaler = Int{}
 	assert.NotNil(t, marshaler)
 	marshaler = Bool{}
 	assert.NotNil(t, marshaler)
@@ -27,15 +27,15 @@ func TestImplementsJsonMarshaller(t *testing.T) {
 
 func TestImplementsJsonUnmarshaller(t *testing.T) {
 	var unmarshaler json.Unmarshaler
-	unmarshaler = Date{}
+	unmarshaler = &Date{}
 	assert.NotNil(t, unmarshaler)
-	unmarshaler = Time{}
+	unmarshaler = &Time{}
 	assert.NotNil(t, unmarshaler)
-	unmarshaler = String{}
+	unmarshaler = &String{}
 	assert.NotNil(t, unmarshaler)
-	unmarshaler = Int64{}
+	unmarshaler = &Int{}
 	assert.NotNil(t, unmarshaler)
-	unmarshalerarshaler = Bool{}
+	unmarshaler = &Bool{}
 	assert.NotNil(t, unmarshaler)
 }
 
@@ -47,7 +47,7 @@ func TestImplementsSqlValuer(t *testing.T) {
 	assert.NotNil(t, valuer)
 	valuer = String{}
 	assert.NotNil(t, valuer)
-	valuer = Int64{}
+	valuer = Int{}
 	assert.NotNil(t, valuer)
 	valuer = Bool{}
 	assert.NotNil(t, valuer)
@@ -61,7 +61,7 @@ func TestImplementSqlScanner(t *testing.T) {
 	assert.NotNil(t, scanner)
 	scanner = &String{}
 	assert.NotNil(t, scanner)
-	scanner = &Int64{}
+	scanner = &Int{}
 	assert.NotNil(t, scanner)
 	scanner = &Bool{}
 	assert.NotNil(t, scanner)
@@ -73,7 +73,7 @@ func TestSetNullable(t *testing.T) {
 	ns.Set("hello world")
 	assert.True(t, ns.Valid)
 
-	var ni Int64
+	var ni Int
 	assert.False(t, ni.Valid)
 	ni.Set(1)
 	assert.True(t, ni.Valid)
@@ -122,6 +122,44 @@ func TestUnmarshalNullBool(t *testing.T) {
 	err = json.Unmarshal([]byte(validFalse), &nb)
 	assert.Nil(t, err)
 	assert.True(t, nb.Valid)
+}
+
+func TestUnmarshalNullInt(t *testing.T) {
+	var jsonNull string = `null`
+	var rationalFloat string = `12.22`
+	var roundedFloat string = `16.0`
+	var validZero string = `0`
+	var validNegative string = `-300`
+	var validPositive string = `1602525`
+
+	var ni Int
+	var err error
+	err = json.Unmarshal([]byte(jsonNull), &ni)
+	assert.Nil(t, err)
+	assert.False(t, ni.Valid)
+
+	err = json.Unmarshal([]byte(rationalFloat), &ni)
+	assert.NotNil(t, err)
+	assert.False(t, ni.Valid)
+
+	err = json.Unmarshal([]byte(roundedFloat), &ni)
+	assert.NotNil(t, err)
+	assert.False(t, ni.Valid)
+
+	err = json.Unmarshal([]byte(validZero), &ni)
+	assert.Nil(t, err)
+	assert.True(t, ni.Valid)
+	assert.Equal(t, 0, ni.Int)
+
+	err = json.Unmarshal([]byte(validNegative), &ni)
+	assert.Nil(t, err)
+	assert.True(t, ni.Valid)
+	assert.Equal(t, -300, ni.Int)
+
+	err = json.Unmarshal([]byte(validPositive), &ni)
+	assert.Nil(t, err)
+	assert.True(t, ni.Valid)
+	assert.Equal(t, 1602525, ni.Int)
 }
 
 func TestUnmarshalNullString(t *testing.T) {
