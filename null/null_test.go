@@ -101,27 +101,27 @@ func TestUnmarshalNullBool(t *testing.T) {
 	var validTrue string = `true`
 	var validFalse string = `false`
 
-	var nb Bool
+	var n Bool
 	var err error
-	err = json.Unmarshal([]byte(jsonNull), &nb)
+	err = json.Unmarshal([]byte(jsonNull), &n)
 	assert.Nil(t, err)
-	assert.False(t, nb.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(jsonEmpty), &nb)
+	err = json.Unmarshal([]byte(jsonEmpty), &n)
 	assert.Nil(t, err)
-	assert.False(t, nb.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(bogusString), &nb)
+	err = json.Unmarshal([]byte(bogusString), &n)
 	assert.NotNil(t, err)
-	assert.False(t, nb.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(validTrue), &nb)
+	err = json.Unmarshal([]byte(validTrue), &n)
 	assert.Nil(t, err)
-	assert.True(t, nb.Valid)
+	assert.True(t, n.Valid)
 
-	err = json.Unmarshal([]byte(validFalse), &nb)
+	err = json.Unmarshal([]byte(validFalse), &n)
 	assert.Nil(t, err)
-	assert.True(t, nb.Valid)
+	assert.True(t, n.Valid)
 }
 
 func TestUnmarshalNullInt(t *testing.T) {
@@ -132,34 +132,34 @@ func TestUnmarshalNullInt(t *testing.T) {
 	var validNegative string = `-300`
 	var validPositive string = `1602525`
 
-	var ni Int
+	var n Int
 	var err error
-	err = json.Unmarshal([]byte(jsonNull), &ni)
+	err = json.Unmarshal([]byte(jsonNull), &n)
 	assert.Nil(t, err)
-	assert.False(t, ni.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(rationalFloat), &ni)
+	err = json.Unmarshal([]byte(rationalFloat), &n)
 	assert.NotNil(t, err)
-	assert.False(t, ni.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(roundedFloat), &ni)
+	err = json.Unmarshal([]byte(roundedFloat), &n)
 	assert.NotNil(t, err)
-	assert.False(t, ni.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(validZero), &ni)
+	err = json.Unmarshal([]byte(validZero), &n)
 	assert.Nil(t, err)
-	assert.True(t, ni.Valid)
-	assert.Equal(t, 0, ni.Int)
+	assert.True(t, n.Valid)
+	assert.Equal(t, 0, n.Int)
 
-	err = json.Unmarshal([]byte(validNegative), &ni)
+	err = json.Unmarshal([]byte(validNegative), &n)
 	assert.Nil(t, err)
-	assert.True(t, ni.Valid)
-	assert.Equal(t, -300, ni.Int)
+	assert.True(t, n.Valid)
+	assert.Equal(t, -300, n.Int)
 
-	err = json.Unmarshal([]byte(validPositive), &ni)
+	err = json.Unmarshal([]byte(validPositive), &n)
 	assert.Nil(t, err)
-	assert.True(t, ni.Valid)
-	assert.Equal(t, 1602525, ni.Int)
+	assert.True(t, n.Valid)
+	assert.Equal(t, 1602525, n.Int)
 }
 
 func TestUnmarshalNullString(t *testing.T) {
@@ -168,25 +168,25 @@ func TestUnmarshalNullString(t *testing.T) {
 	var jsonEmpty string = `""`
 	var validString string = `"foo"`
 
-	var ns String
+	var n String
 	var err error
-	err = json.Unmarshal([]byte(jsonNull), &ns)
+	err = json.Unmarshal([]byte(jsonNull), &n)
 	assert.Nil(t, err)
-	assert.False(t, ns.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(jsonNumber), &ns)
+	err = json.Unmarshal([]byte(jsonNumber), &n)
 	assert.NotNil(t, err)
-	assert.False(t, ns.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(jsonEmpty), &ns)
+	err = json.Unmarshal([]byte(jsonEmpty), &n)
 	assert.Nil(t, err)
-	assert.True(t, ns.Valid)
-	assert.Equal(t, "", ns.String)
+	assert.True(t, n.Valid)
+	assert.Equal(t, "", n.String)
 
-	err = json.Unmarshal([]byte(validString), &ns)
+	err = json.Unmarshal([]byte(validString), &n)
 	assert.Nil(t, err)
-	assert.True(t, ns.Valid)
-	assert.Equal(t, "foo", ns.String)
+	assert.True(t, n.Valid)
+	assert.Equal(t, "foo", n.String)
 
 }
 
@@ -196,24 +196,24 @@ func TestUnmarshalNullTime(t *testing.T) {
 	var stringTime string = `"2010-07-03T13:24:33Z"`
 	var stringBogus string = `"bogus"`
 
-	var nt Time
+	var n Time
 	var err error
-	err = json.Unmarshal([]byte(jsonNull), &nt)
+	err = json.Unmarshal([]byte(jsonNull), &n)
 	assert.Nil(t, err)
-	assert.False(t, nt.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(jsonEmpty), &nt)
+	err = json.Unmarshal([]byte(jsonEmpty), &n)
 	assert.Nil(t, err)
-	assert.False(t, nt.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(stringTime), &nt)
+	err = json.Unmarshal([]byte(stringTime), &n)
 	assert.Nil(t, err)
-	assert.True(t, nt.Valid)
-	assert.Equal(t, "2010-07-03 13:24:33", nt.Time.Format("2006-01-02 15:04:05"))
+	assert.True(t, n.Valid)
+	assert.Equal(t, "2010-07-03 13:24:33", n.Time.Format("2006-01-02 15:04:05"))
 
-	err = json.Unmarshal([]byte(stringBogus), &nt)
+	err = json.Unmarshal([]byte(stringBogus), &n)
 	assert.NotNil(t, err)
-	assert.False(t, nt.Valid)
+	assert.False(t, n.Valid)
 }
 
 func TestUnmarshalNullDate(t *testing.T) {
@@ -223,30 +223,30 @@ func TestUnmarshalNullDate(t *testing.T) {
 	var stringTime string = `"2010-07-03T13:24:33"`
 	var stringBogus string = `"bogus"`
 
-	var nd Date
+	var n Date
 	var err error
-	err = json.Unmarshal([]byte(jsonNull), &nd)
+	err = json.Unmarshal([]byte(jsonNull), &n)
 	assert.Nil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(jsonEmpty), &nd)
+	err = json.Unmarshal([]byte(jsonEmpty), &n)
 	assert.Nil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(stringDate), &nd)
+	err = json.Unmarshal([]byte(stringDate), &n)
 	assert.Nil(t, err)
-	assert.True(t, nd.Valid)
-	assert.Equal(t, 2010, nd.Date.Year)
-	assert.Equal(t, time.July, nd.Date.Month)
-	assert.Equal(t, 3, nd.Date.Day)
+	assert.True(t, n.Valid)
+	assert.Equal(t, 2010, n.Date.Year)
+	assert.Equal(t, time.July, n.Date.Month)
+	assert.Equal(t, 3, n.Date.Day)
 
-	err = json.Unmarshal([]byte(stringTime), &nd)
+	err = json.Unmarshal([]byte(stringTime), &n)
 	assert.NotNil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 
-	err = json.Unmarshal([]byte(stringBogus), &nd)
+	err = json.Unmarshal([]byte(stringBogus), &n)
 	assert.NotNil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 }
 
 func TestScanNullTime(t *testing.T) {
@@ -255,26 +255,26 @@ func TestScanNullTime(t *testing.T) {
 	var byteTime = []byte(mysqlTime)
 	var notTime = 3
 
-	var nt Time
+	var n Time
 	var err error
-	err = nt.Scan(rawTime)
+	err = n.Scan(rawTime)
 	assert.Nil(t, err)
-	assert.True(t, nt.Valid)
-	assert.NotEmpty(t, nt.Time.Format("2006-01-02 15:04:05"))
+	assert.True(t, n.Valid)
+	assert.NotEmpty(t, n.Time.Format("2006-01-02 15:04:05"))
 
-	err = nt.Scan(mysqlTime)
+	err = n.Scan(mysqlTime)
 	assert.Nil(t, err)
-	assert.True(t, nt.Valid)
-	assert.Equal(t, mysqlTime, nt.Time.Format("2006-01-02 15:04:05"))
+	assert.True(t, n.Valid)
+	assert.Equal(t, mysqlTime, n.Time.Format("2006-01-02 15:04:05"))
 
-	err = nt.Scan(byteTime)
+	err = n.Scan(byteTime)
 	assert.Nil(t, err)
-	assert.True(t, nt.Valid)
-	assert.Equal(t, mysqlTime, nt.Time.Format("2006-01-02 15:04:05"))
+	assert.True(t, n.Valid)
+	assert.Equal(t, mysqlTime, n.Time.Format("2006-01-02 15:04:05"))
 
-	err = nt.Scan(notTime)
+	err = n.Scan(notTime)
 	assert.NotNil(t, err)
-	assert.False(t, nt.Valid)
+	assert.False(t, n.Valid)
 }
 
 func TestScanNullDate(t *testing.T) {
@@ -285,38 +285,38 @@ func TestScanNullDate(t *testing.T) {
 	var byteDate = []byte(mysqlDate)
 	var notTime = 3
 
-	var nd Date
+	var n Date
 	var err error
-	err = nd.Scan(rawTime)
+	err = n.Scan(rawTime)
 	assert.Nil(t, err)
-	assert.True(t, nd.Valid)
-	assert.Equal(t, 2010, nd.Date.Year)
-	assert.Equal(t, time.July, nd.Date.Month)
-	assert.Equal(t, 3, nd.Date.Day)
+	assert.True(t, n.Valid)
+	assert.Equal(t, 2010, n.Date.Year)
+	assert.Equal(t, time.July, n.Date.Month)
+	assert.Equal(t, 3, n.Date.Day)
 
-	err = nd.Scan(mysqlTime)
+	err = n.Scan(mysqlTime)
 	assert.NotNil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 
-	err = nd.Scan(mysqlDate)
+	err = n.Scan(mysqlDate)
 	assert.Nil(t, err)
-	assert.True(t, nd.Valid)
-	assert.Equal(t, 2010, nd.Date.Year)
-	assert.Equal(t, time.July, nd.Date.Month)
-	assert.Equal(t, 3, nd.Date.Day)
+	assert.True(t, n.Valid)
+	assert.Equal(t, 2010, n.Date.Year)
+	assert.Equal(t, time.July, n.Date.Month)
+	assert.Equal(t, 3, n.Date.Day)
 
-	err = nd.Scan(byteTime)
+	err = n.Scan(byteTime)
 	assert.NotNil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 
-	err = nd.Scan(byteDate)
+	err = n.Scan(byteDate)
 	assert.Nil(t, err)
-	assert.True(t, nd.Valid)
-	assert.Equal(t, 2010, nd.Date.Year)
-	assert.Equal(t, time.July, nd.Date.Month)
-	assert.Equal(t, 3, nd.Date.Day)
+	assert.True(t, n.Valid)
+	assert.Equal(t, 2010, n.Date.Year)
+	assert.Equal(t, time.July, n.Date.Month)
+	assert.Equal(t, 3, n.Date.Day)
 
-	err = nd.Scan(notTime)
+	err = n.Scan(notTime)
 	assert.NotNil(t, err)
-	assert.False(t, nd.Valid)
+	assert.False(t, n.Valid)
 }
