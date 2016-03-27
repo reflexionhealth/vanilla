@@ -108,13 +108,13 @@ func (p *Parser) error(pos token.Position, msg string) {
 
 func (p *Parser) expect(tok token.Token) {
 	if p.tok != tok {
-		p.error(p.scanner.Pos(), fmt.Sprintf(`expected '%v' but received '%v'.`, tok, p.tok))
+		p.error(p.scanner.Pos(), fmt.Sprintf(`expected '%v' but received '%v'`, tok, p.tok))
 	}
 	p.next()
 }
 
 func (p *Parser) expected(what string) {
-	p.error(p.scanner.Pos(), fmt.Sprintf(`expected '%v' but received '%v'.`, what, p.tok))
+	p.error(p.scanner.Pos(), fmt.Sprintf(`expected '%v' but received '%v'`, what, p.tok))
 }
 
 func (p *Parser) next() {
