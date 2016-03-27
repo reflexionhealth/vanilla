@@ -261,7 +261,13 @@ func (p *Parser) parseExpression() ast.Expr {
 // eatUnimplemented eats till the end of statement if AllowsNotImplemented is true
 func (p *Parser) eatUnimplemented() {
 	if !p.rules.AllowNotImplemented && !(p.tok == token.EOS || p.tok == token.SEMICOLON) {
-		p.error(p.scanner.Pos(), `cannot parse statement; reached unimplemented clause "`+p.tok.String()+`"`)
+		var errorValue string
+		if p.tok.HasLiteral() {
+			errorValue = p.lit
+		} else {
+			errorValue = p.tok.String()
+		}
+		p.error(p.scanner.Pos(), `cannot parse statement; reached unimplemented clause at "`+errorValue+`"`)
 	}
 
 	// eat till the end of statement
