@@ -71,7 +71,9 @@ func (r *Response) Render(status int, contentType string) {
 	if len(contentType) > 0 {
 		r.ResponseWriter.Header().Set(HeaderContentType, contentType)
 	}
-	r.ResponseWriter.WriteHeader(status)
+
+	// NOTE: write header is sets `r.rendered` = true
+	r.WriteHeader(status)
 }
 
 func (r *Response) Clear(writer http.ResponseWriter) {
