@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"io"
 	"runtime"
 	"strings"
 
@@ -53,7 +54,7 @@ type Parser struct {
 	tok token.Token // next token type
 	lit string      // next token literal
 
-	Trace bool
+	Trace io.Writer // output for trace (no output if nil)
 }
 
 // Make initialize
@@ -94,14 +95,14 @@ func (p *Parser) recoverStopped(err *error) {
 		if stop, ok := e.(stopParsing); ok {
 			*err = stop.err
 		} else {
-			panic(e)
+			*err = fmt.Errorf("panic: %v", e)
 		}
 	}
 }
 
 func (p *Parser) error(pos token.Position, msg string) {
-	if p.Trace {
-		fmt.Printf(" (error) %v\n", (&ParseError{pos, msg}).Error())
+	if p.Trace != nil {
+		fmt.Fprintf(p.Trace, " (error) %v\n", (&ParseError{pos, msg}).Error())
 	}
 	p.stopParsing(&ParseError{pos, msg})
 }
@@ -118,7 +119,7 @@ func (p *Parser) expected(what string) {
 }
 
 func (p *Parser) next() {
-	if p.Trace {
+	if p.Trace != nil && (p.pos > 0 || p.tok != token.INVALID) {
 		pc, _, line, _ := runtime.Caller(1)
 		path := strings.Split(runtime.FuncForPC(pc).Name(), ".")
 		name := path[len(path)-1]
@@ -133,7 +134,7 @@ func (p *Parser) next() {
 		if len(lit) > 7 {
 			lit = lit[0:6] + "~"
 		}
-		fmt.Printf(" %7.7s : %-14s @ %v:%v\n", lit, p.tok, caller, line)
+		fmt.Fprintf(p.Trace, " %7.7s : %-14s @ %v:%v\n", lit, p.tok, caller, line)
 	}
 
 	p.pos, p.tok, p.lit = p.scanner.Scan()
