@@ -24,9 +24,9 @@ type ErrorHandler func(pos token.Position, msg string)
 
 // A scanner.Ruleset specifies the dialect specific tokenizing rules for a SQL dialect
 type Ruleset struct {
-	BracketsAreQuotes         bool
-	BacktickIsQuotemark       bool
-	DoubleQuoteIsNotQuotemark bool
+	BracketsAreQuotes   bool
+	BacktickIsQuotemark bool
+	DoubleQuoteIsString bool
 
 	DollarIsLetter bool
 
@@ -115,10 +115,8 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 		// 	s.scanComment()
 		// 	goto scanAgain
 		case '"':
-			if s.rules.DoubleQuoteIsNotQuotemark {
-				s.error(pos, fmt.Sprintf("unexpected character %#U", ch))
-				tok = token.INVALID
-				lit = string(ch)
+			if s.rules.DoubleQuoteIsString {
+				tok, lit = s.scanString('"')
 			} else {
 				tok, lit = s.scanQuotedIdentifier('"')
 			}
@@ -131,7 +129,7 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 				lit = string(ch)
 			}
 		case '\'':
-			tok, lit = s.scanString()
+			tok, lit = s.scanString('\'')
 		case ';':
 			tok = token.SEMICOLON
 		case ':':
@@ -152,6 +150,30 @@ func (s *Scanner) Scan() (pos int, tok token.Token, lit string) {
 			tok = token.COMMA
 		case '=':
 			tok = token.EQUALS
+		case '!':
+			if s.char == '=' {
+				s.next()
+				tok = token.BANG_EQUAL
+			} else {
+				tok = token.BANG
+			}
+		case '<':
+			if s.char == '=' {
+				s.next()
+				tok = token.LEFT_EQUAL
+			} else if s.char == '>' {
+				s.next()
+				tok = token.LEFT_RIGHT
+			} else {
+				tok = token.LEFT_ANGLE
+			}
+		case '>':
+			if s.char == '=' {
+				s.next()
+				tok = token.RIGHT_EQUAL
+			} else {
+				tok = token.RIGHT_ANGLE
+			}
 		case '@':
 			tok = token.AT
 		case '(':
@@ -324,8 +346,8 @@ func (s *Scanner) scanNumber(afterDecimal bool) (token.Token, string) {
 	return tok, string(s.src[offset:s.offset])
 }
 
-func (s *Scanner) scanString() (token.Token, string) {
-	// opening single-quote already consumed
+func (s *Scanner) scanString(qouteMark rune) (token.Token, string) {
+	// opening quote already consumed
 	offset := s.offset - 1
 	tok := token.STRING
 
@@ -340,7 +362,7 @@ func (s *Scanner) scanString() (token.Token, string) {
 		}
 
 		s.next()
-		if ch == '\'' {
+		if ch == qouteMark {
 			break
 		}
 	}

@@ -35,11 +35,13 @@ func TestLookup(t *testing.T) {
 
 	// all keyword tokens and no non-keyword tokens
 	for i, name := range tokens {
-		tok := Token(i)
-		if tok.IsKeyword() {
-			assert.Equal(t, tok, Lookup(name))
-		} else {
-			assert.Equal(t, IDENT, Lookup(name))
+		if len(name) > 0 {
+			tok := Token(i)
+			if tok.IsKeyword() {
+				assert.Equal(t, tok, Lookup(name))
+			} else {
+				assert.Equal(t, IDENT, Lookup(name))
+			}
 		}
 	}
 
@@ -77,6 +79,13 @@ func TestTokenString(t *testing.T) {
 	assert.Equal(t, "+", PLUS.String())
 	assert.Equal(t, "-", MINUS.String())
 	assert.Equal(t, ".", PERIOD.String())
+	assert.Equal(t, "::", CONS.String())
+	assert.Equal(t, "<", LEFT_ANGLE.String())
+	assert.Equal(t, ">", RIGHT_ANGLE.String())
+	assert.Equal(t, "<=", LEFT_EQUAL.String())
+	assert.Equal(t, ">=", RIGHT_EQUAL.String())
+	assert.Equal(t, "!=", BANG_EQUAL.String())
+	assert.Equal(t, "<>", LEFT_RIGHT.String())
 
 	assert.Equal(t, "(", LEFT_PAREN.String())
 	assert.Equal(t, "[", LEFT_BRACKET.String())
@@ -116,6 +125,13 @@ func TestHasLiteral(t *testing.T) {
 	assert.Equal(t, false, PLUS.HasLiteral())
 	assert.Equal(t, false, MINUS.HasLiteral())
 	assert.Equal(t, false, PERIOD.HasLiteral())
+	assert.Equal(t, false, CONS.HasLiteral())
+	assert.Equal(t, false, LEFT_ANGLE.HasLiteral())
+	assert.Equal(t, false, RIGHT_ANGLE.HasLiteral())
+	assert.Equal(t, false, LEFT_EQUAL.HasLiteral())
+	assert.Equal(t, false, RIGHT_EQUAL.HasLiteral())
+	assert.Equal(t, false, BANG_EQUAL.HasLiteral())
+	assert.Equal(t, false, LEFT_RIGHT.HasLiteral())
 
 	assert.Equal(t, false, LEFT_PAREN.HasLiteral())
 	assert.Equal(t, false, LEFT_BRACKET.HasLiteral())
@@ -138,15 +154,80 @@ func TestIsKeyword(t *testing.T) {
 	assert.Equal(t, false, EQUALS.IsKeyword())
 	assert.Equal(t, false, AT.IsKeyword())
 	assert.Equal(t, false, COMMA.IsKeyword())
+	assert.Equal(t, false, QUESTION.IsKeyword())
 	assert.Equal(t, false, ASTERISK.IsKeyword())
 	assert.Equal(t, false, SLASH.IsKeyword())
 	assert.Equal(t, false, PERCENT.IsKeyword())
 	assert.Equal(t, false, PLUS.IsKeyword())
 	assert.Equal(t, false, MINUS.IsKeyword())
 	assert.Equal(t, false, PERIOD.IsKeyword())
+	assert.Equal(t, false, CONS.IsKeyword())
+	assert.Equal(t, false, LEFT_ANGLE.IsKeyword())
+	assert.Equal(t, false, RIGHT_ANGLE.IsKeyword())
+	assert.Equal(t, false, LEFT_EQUAL.IsKeyword())
+	assert.Equal(t, false, RIGHT_EQUAL.IsKeyword())
+	assert.Equal(t, false, BANG_EQUAL.IsKeyword())
+	assert.Equal(t, false, LEFT_RIGHT.IsKeyword())
 
 	assert.Equal(t, false, LEFT_PAREN.IsKeyword())
 	assert.Equal(t, false, LEFT_BRACKET.IsKeyword())
 	assert.Equal(t, false, RIGHT_PAREN.IsKeyword())
 	assert.Equal(t, false, RIGHT_BRACKET.IsKeyword())
+}
+
+func TestIsOperator(t *testing.T) {
+	assert.Equal(t, false, INVALID.IsOperator())
+	assert.Equal(t, false, EOS.IsOperator())
+	assert.Equal(t, false, COMMENT.IsOperator())
+
+	assert.Equal(t, false, IDENT.IsOperator())
+	assert.Equal(t, false, QUOTED_IDENT.IsOperator())
+
+	assert.Equal(t, false, SEMICOLON.IsOperator())
+	assert.Equal(t, false, COLON.IsOperator())
+	assert.Equal(t, false, DOLLAR.IsOperator())
+	assert.Equal(t, false, AT.IsOperator())
+	assert.Equal(t, false, COMMA.IsOperator())
+	assert.Equal(t, false, QUESTION.IsOperator())
+
+	assert.Equal(t, true, BANG.IsOperator())
+	assert.Equal(t, true, EQUALS.IsOperator())
+	assert.Equal(t, true, ASTERISK.IsOperator())
+	assert.Equal(t, true, SLASH.IsOperator())
+	assert.Equal(t, true, PERCENT.IsOperator())
+	assert.Equal(t, true, PLUS.IsOperator())
+	assert.Equal(t, true, MINUS.IsOperator())
+	assert.Equal(t, true, PERIOD.IsOperator())
+	assert.Equal(t, true, CONS.IsOperator())
+	assert.Equal(t, true, LEFT_ANGLE.IsOperator())
+	assert.Equal(t, true, RIGHT_ANGLE.IsOperator())
+	assert.Equal(t, true, LEFT_EQUAL.IsOperator())
+	assert.Equal(t, true, RIGHT_EQUAL.IsOperator())
+	assert.Equal(t, true, BANG_EQUAL.IsOperator())
+	assert.Equal(t, true, LEFT_RIGHT.IsOperator())
+
+	assert.Equal(t, false, LEFT_PAREN.IsOperator())
+	assert.Equal(t, false, LEFT_BRACKET.IsOperator())
+	assert.Equal(t, false, RIGHT_PAREN.IsOperator())
+	assert.Equal(t, false, RIGHT_BRACKET.IsOperator())
+
+	assert.Equal(t, false, SELECT.IsOperator())
+	assert.Equal(t, false, INSERT.IsOperator())
+	assert.Equal(t, false, UPDATE.IsOperator())
+	assert.Equal(t, false, WHERE.IsOperator())
+	assert.Equal(t, false, GROUP.IsOperator())
+	assert.Equal(t, false, ORDER.IsOperator())
+	assert.Equal(t, false, HAVING.IsOperator())
+
+	assert.Equal(t, true, AND.IsOperator())
+	assert.Equal(t, true, OR.IsOperator())
+	assert.Equal(t, true, IS.IsOperator())
+	assert.Equal(t, true, NOT.IsOperator())
+	assert.Equal(t, true, IN.IsOperator())
+	assert.Equal(t, true, BETWEEN.IsOperator())
+	assert.Equal(t, true, OVERLAPS.IsOperator())
+	assert.Equal(t, true, LIKE.IsOperator())
+	assert.Equal(t, true, ILIKE.IsOperator())
+	assert.Equal(t, true, REGEXP.IsOperator())
+	assert.Equal(t, true, SIMILAR.IsOperator())
 }

@@ -38,7 +38,7 @@ type Conn struct {
 }
 
 func (c *Conn) Prepare(query string) (driver.Stmt, error) {
-	prep := parser.Make([]byte(query), c.Rules)
+	prep := parser.New([]byte(query), c.Rules)
 	stmt, err := prep.ParseStatement()
 	return &Stmt{Ast: stmt}, err
 }
@@ -78,7 +78,7 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	}
 
 	var columns []string
-	for _, expr := range slct.Selection {
+	for _, expr := range slct.Select {
 		if ident, ok := expr.(*ast.Identifier); ok {
 			columns = append(columns, ident.Name)
 		} else {

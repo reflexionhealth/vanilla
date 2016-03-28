@@ -12,6 +12,8 @@ type Expr interface {
 	ImplementsExpr()
 }
 
+func (e *BinaryExpr) ImplementsExpr() {}
+func (e *UnaryExpr) ImplementsExpr()  {}
 func (i *Identifier) ImplementsExpr() {}
 func (l *Literal) ImplementsExpr()    {}
 
@@ -26,23 +28,23 @@ type SelectType int
 
 const (
 	SELECT_ALL SelectType = iota
-	SELECT_DISTINCT
-	SELECT_DISTINCTROW
+	DISTINCT
+	DISTINCT_ROW
 )
 
 type SelectStmt struct {
-	Type      SelectType
-	Selection []Expr
-	Star      bool
-	From      Identifier
-	Where     Expr
-	Having    Expr
-	GroupBy   string
-	Grouping  Direction
-	OrderBy   string
-	Ordering  Direction
-	Limit     int
-	Offset    int
+	Type     SelectType
+	Select   []Expr
+	Star     bool
+	From     *Identifier
+	Where    Expr
+	Having   Expr
+	GroupBy  string
+	Grouping Direction
+	OrderBy  string
+	Ordering Direction
+	Limit    int
+	Offset   int
 }
 
 type InsertStmt struct{}
@@ -53,46 +55,34 @@ type Identifier struct {
 	Quoted bool
 }
 
+func Name(name string) *Identifier   { return &Identifier{name, false} }
+func Quoted(name string) *Identifier { return &Identifier{name, true} }
+
 type Literal struct {
 	Raw string
 }
 
-type BinaryOperator int
-
-const (
-	AND BinaryOperator = iota
-	OR
-	XOR
-	IN
-	IS
-	LESS
-	LESSEQ
-	GRTR
-	GRTREQ
-	EQUAL
-	ADD
-	SUBTRACT
-	MULTIPLY
-	DIVIDE
-	MODULO
-)
+func Lit(raw string) *Literal { return &Literal{raw} }
 
 type BinaryExpr struct {
-	Left  Expr
-	Oper  BinaryOperator
-	Right Expr
+	Left     Expr
+	Operator OpType
+	Right    Expr
+}
+
+func Binary(left Expr, op OpType, right Expr) *BinaryExpr {
+	return &BinaryExpr{left, op, right}
 }
 
 type UnaryOperator int
 
-const (
-	NOT UnaryOperator = iota
-	ISNULL
-	NOTNULL
-	NEGATIVE
-)
+const ()
 
 type UnaryExpr struct {
-	Expr Expr
-	Oper UnaryOperator
+	Operator OpType
+	Subexpr  Expr
+}
+
+func Unary(op OpType, subexpr Expr) *UnaryExpr {
+	return &UnaryExpr{op, subexpr}
 }

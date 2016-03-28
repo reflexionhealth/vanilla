@@ -14,6 +14,7 @@ import (
 // A Ruleset specifies the dialect specific parsing rules for a SQL dialect
 type Ruleset struct {
 	ScanRules scanner.Ruleset
+	Operators ast.OperatorSet
 
 	// AllowNotImplemented controls whether the parser will barf an error
 	// if it reaches a likely valid part of SQL syntax that just hasn't been
@@ -23,15 +24,9 @@ type Ruleset struct {
 
 	CanSelectDistinctRow bool
 	CanSelectWithoutFrom bool
-}
 
-var AnsiRuleset = Ruleset{}
-var MysqlRuleset = Ruleset{
-	CanSelectDistinctRow: true,
-	ScanRules: scanner.Ruleset{
-		BacktickIsQuotemark:       true,
-		DoubleQuoteIsNotQuotemark: true,
-	},
+	Operator   ast.OperatorSet
+	Initialize func(os *ast.OperatorSet)
 }
 
 type ParseError struct {
@@ -57,9 +52,9 @@ type Parser struct {
 	Trace io.Writer // output for trace (no output if nil)
 }
 
-// Make initialize
-func Make(src []byte, rules Ruleset) Parser {
-	p := Parser{}
+// New will allocate initialize a parser when you don't want to allocate one yourself
+func New(src []byte, rules Ruleset) *Parser {
+	p := &Parser{}
 	p.Init(src, rules)
 	return p
 }
@@ -162,15 +157,15 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 	case token.ALL:
 		p.next()
 	case token.DISTINCT:
-		stmt.Type = ast.SELECT_DISTINCT
+		stmt.Type = ast.DISTINCT
 		p.next()
 	case token.DISTINCTROW:
 		if p.rules.CanSelectDistinctRow {
-			stmt.Type = ast.SELECT_DISTINCTROW
+			stmt.Type = ast.DISTINCT_ROW
 			p.next()
 		} else {
-			p.error(p.scanner.Pos(), `statement includes SELECT "DISTINCTROW", but CanSelectDistinctRow is false`)
-			p.next()
+			msg := `statement includes SELECT "DISTINCTROW", but CanSelectDistinctRow is false`
+			p.error(p.scanner.Pos(), msg)
 		}
 	}
 
@@ -178,10 +173,10 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 		stmt.Star = true
 		p.next()
 	} else {
-		stmt.Selection = []ast.Expr{p.parseExpression()}
+		stmt.Select = []ast.Expr{p.parseExpression()}
 		for p.tok == token.COMMA {
 			p.next() // eat comma
-			stmt.Selection = append(stmt.Selection, p.parseExpression())
+			stmt.Select = append(stmt.Select, p.parseExpression())
 		}
 	}
 
@@ -195,21 +190,20 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 	p.expect(token.FROM)
 	switch p.tok {
 	case token.IDENT:
-		stmt.From.Name = p.lit
-		stmt.From.Quoted = false
+		stmt.From = ast.Name(p.lit)
 		p.next()
 	case token.QUOTED_IDENT:
-		stmt.From.Name = p.lit
-		stmt.From.Quoted = true
+		stmt.From = ast.Quoted(p.lit)
 		p.next()
 	default:
 		p.expected("a table name")
 	}
 
-	// if p.tok == token.WHERE {
-	// 	panic("TODO: parse WHERE")
-	// }
-	//
+	if p.tok == token.WHERE {
+		p.next() // eat WHERE
+		stmt.Where = p.parseExpression()
+	}
+
 	// if p.tok == token.GROUP {
 	// 	panic("TODO: parse GROUP BY")
 	// }
@@ -226,41 +220,118 @@ func (p *Parser) parseSelect() *ast.SelectStmt {
 	// 	panic("TODO: parse LIMIT")
 	// }
 
-	p.eatUnimplemented()
+	p.eatUnimplemented("clause")
 	return stmt
 }
 
 func (p *Parser) parseInsert() *ast.InsertStmt {
 	p.expect(token.INSERT)
 	p.expect(token.INTO)
-	p.eatUnimplemented()
+	p.eatUnimplemented("clause")
 	return nil
 }
 
 func (p *Parser) parseUpdate() *ast.UpdateStmt {
 	p.expect(token.UPDATE)
-	p.eatUnimplemented()
+	p.eatUnimplemented("clause")
 	return nil
 }
 
+// parseExpression uses table-based operator parsing (see parseExprWithOperators)
 func (p *Parser) parseExpression() ast.Expr {
+	return p.parseExprWithOperators(ast.MinPrecedence)
+}
+
+func (p *Parser) parseExprWithOperators(precedence ast.OpPrecedence) ast.Expr {
+	lhs := p.parseBaseExpression()
+	if p.tok == token.LEFT_PAREN {
+		// TODO: functions like MAX(), MIN(), AVERAGE()
+		p.eatUnimplemented("expression")
+	} else if !p.tok.IsOperator() {
+		return lhs
+	}
+
+	op, exists := p.rules.Operators.Lookup(p.tok.String(), ast.Infix)
+	if !exists {
+		msg := `statement includes '` + p.tok.String() + `', but it is not defined as an operator`
+		p.error(p.scanner.Pos(), msg)
+	}
+
+	consumable := ast.MaxPrecedence
+	for (op.Kind == ast.Infix) &&
+		(precedence <= op.Precedence && op.Precedence <= consumable) {
+
+		p.next() // eat operator
+		rhs := p.parseExprWithOperators(rightPrec(op))
+		lhs = ast.Binary(lhs, op.Type, rhs)
+
+		if p.tok.IsOperator() {
+			var exists bool
+			op, exists = p.rules.Operators.Lookup(p.tok.String(), ast.Infix)
+			if !exists {
+				msg := `statement includes '` + p.tok.String() + `', but it is not defined as an operator`
+				p.error(p.scanner.Pos(), msg)
+			}
+			consumable = nextPrec(op)
+		} else {
+			break
+		}
+	}
+
+	return lhs
+}
+
+func rightPrec(op ast.Operator) ast.OpPrecedence {
+	if op.Assoc == ast.RightAssoc {
+		return op.Precedence
+	} else {
+		return op.Precedence + 1
+	}
+}
+
+func nextPrec(op ast.Operator) ast.OpPrecedence {
+	if op.Assoc == ast.LeftAssoc {
+		return op.Precedence
+	} else {
+		return op.Precedence - 1
+	}
+}
+
+func (p *Parser) parseBaseExpression() ast.Expr {
+	/* handle prefix operator */
+	if p.tok.IsOperator() {
+		op, exists := p.rules.Operators.Lookup(p.tok.String(), ast.Prefix)
+		if !exists {
+			msg := `statement includes '` + p.tok.String() + `', but it is not defined as a unary operator`
+			p.error(p.scanner.Pos(), msg)
+		}
+
+		p.next() // eat operator
+		expr := p.parseExprWithOperators(op.Precedence)
+		return ast.Unary(op.Type, expr)
+	}
+
 	switch p.tok {
 	case token.IDENT:
-		ident := &ast.Identifier{p.lit, false}
+		ident := ast.Name(p.lit)
 		p.next()
 		return ident
 	case token.QUOTED_IDENT:
-		ident := &ast.Identifier{p.lit, true}
+		ident := ast.Quoted(p.lit)
 		p.next()
 		return ident
+	case token.STRING, token.NUMBER:
+		lit := ast.Lit(p.lit)
+		p.next()
+		return lit
 	default:
-		p.eatUnimplemented()
+		p.eatUnimplemented("expression")
 		return nil
 	}
 }
 
 // eatUnimplemented eats till the end of statement if AllowsNotImplemented is true
-func (p *Parser) eatUnimplemented() {
+func (p *Parser) eatUnimplemented(what string) {
 	if !p.rules.AllowNotImplemented && !(p.tok == token.EOS || p.tok == token.SEMICOLON) {
 		var errorValue string
 		if p.tok.HasLiteral() {
@@ -268,7 +339,8 @@ func (p *Parser) eatUnimplemented() {
 		} else {
 			errorValue = p.tok.String()
 		}
-		p.error(p.scanner.Pos(), `cannot parse statement; reached unimplemented clause at "`+errorValue+`"`)
+		msg := `cannot parse statement; reached unimplemented ` + what + ` at '` + errorValue + `'`
+		p.error(p.scanner.Pos(), msg)
 	}
 
 	// eat till the end of statement

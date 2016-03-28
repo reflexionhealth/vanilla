@@ -159,14 +159,6 @@ func TestScansQuotedIdentifier(t *testing.T) {
 	assert.Equal(t, token.QUOTED_IDENT, scan.tok)
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, `simple`, scan.lit)
-
-	scan, err = scanOnceWith(`"simple"`, Ruleset{DoubleQuoteIsNotQuotemark: true})
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unexpected character U+0022 '"'`, err.msg)
-	}
 }
 
 func TestScansStrings(t *testing.T) {
@@ -199,6 +191,12 @@ func TestScansStrings(t *testing.T) {
 	assert.Equal(t, token.STRING, scan.tok)
 	assert.Equal(t, 0, scan.pos)
 	assert.Equal(t, `'slashes \\ \/'`, scan.lit)
+
+	scan, err = scanOnceWith(`"simple"`, Ruleset{DoubleQuoteIsString: true})
+	assert.Nil(t, err)
+	assert.Equal(t, token.STRING, scan.tok)
+	assert.Equal(t, 0, scan.pos)
+	assert.Equal(t, `"simple"`, scan.lit)
 }
 
 func TestReportsUsefulStringErrors(t *testing.T) {

@@ -1,4 +1,4 @@
-package math
+package utils
 
 func MinF32(a float32, b float32) float32 {
 	if a < b {

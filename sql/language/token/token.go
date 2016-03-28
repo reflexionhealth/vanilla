@@ -60,17 +60,30 @@ const (
 	SEMICOLON
 	COLON
 	DOLLAR
-	BANG
-	EQUALS
 	AT
 	COMMA
-	ASTERISK
 	QUESTION
+
+	// Operator-like punctuation
+	_beginOperators
+
+	ASTERISK
+	BANG
+	EQUALS
 	SLASH
 	PERCENT
 	PLUS
 	MINUS
 	PERIOD
+	CONS
+	LEFT_ANGLE
+	RIGHT_ANGLE
+	LEFT_EQUAL
+	RIGHT_EQUAL
+	BANG_EQUAL
+	LEFT_RIGHT
+
+	_endOperators
 
 	// Delimiters
 	LEFT_PAREN
@@ -79,7 +92,8 @@ const (
 	RIGHT_BRACKET
 
 	// Keywords
-	keywords_begin
+	_beginKeywords
+
 	CREATE
 	TABLE
 
@@ -115,16 +129,23 @@ const (
 	TRUE
 	FALSE
 
+	_beginKeywordOperators
+
 	AND
 	OR
 	IS
 	NOT
 	IN
 	BETWEEN
+	OVERLAPS
 	LIKE
+	ILIKE
+	REGEXP
 	SIMILAR
 
-	keywords_end
+	_endKeywordOperators
+
+	_endKeywords
 )
 
 var tokens = [...]string{
@@ -141,17 +162,25 @@ var tokens = [...]string{
 	SEMICOLON: ";",
 	COLON:     ":",
 	DOLLAR:    "$",
-	BANG:      "!",
-	EQUALS:    "=",
 	AT:        "@",
 	COMMA:     ",",
-	ASTERISK:  "*",
 	QUESTION:  "?",
-	SLASH:     "/",
-	PERCENT:   "%",
-	PLUS:      "+",
-	MINUS:     "-",
-	PERIOD:    ".",
+
+	ASTERISK:    "*",
+	BANG:        "!",
+	EQUALS:      "=",
+	SLASH:       "/",
+	PERCENT:     "%",
+	PLUS:        "+",
+	MINUS:       "-",
+	PERIOD:      ".",
+	CONS:        "::",
+	LEFT_ANGLE:  "<",
+	RIGHT_ANGLE: ">",
+	LEFT_EQUAL:  "<=",
+	RIGHT_EQUAL: ">=",
+	BANG_EQUAL:  "!=",
+	LEFT_RIGHT:  "<>",
 
 	LEFT_PAREN:    "(",
 	LEFT_BRACKET:  "[",
@@ -193,14 +222,19 @@ var tokens = [...]string{
 	TRUE:  "TRUE",
 	FALSE: "FALSE",
 
-	AND:     "AND",
-	OR:      "OR",
-	IS:      "IS",
-	NOT:     "NOT",
-	IN:      "IN",
-	BETWEEN: "BETWEEN",
-	LIKE:    "LIKE",
-	SIMILAR: "SIMILAR",
+	AND:      "AND",
+	OR:       "OR",
+	IS:       "IS",
+	NOT:      "NOT",
+	IN:       "IN",
+	BETWEEN:  "BETWEEN",
+	OVERLAPS: "OVERLAPS",
+	LIKE:     "LIKE",
+	ILIKE:    "ILIKE",
+	REGEXP:   "REGEXP",
+	SIMILAR:  "SIMILAR",
+
+	_endKeywords: "",
 }
 
 func (tok Token) String() string {
@@ -218,8 +252,10 @@ var keywords map[string]Token
 
 func init() {
 	keywords = make(map[string]Token)
-	for i := keywords_begin + 1; i < keywords_end; i++ {
-		keywords[tokens[i]] = i
+	for i := _beginKeywords + 1; i < _endKeywords; i++ {
+		if len(tokens[i]) > 0 {
+			keywords[tokens[i]] = i
+		}
 	}
 }
 
@@ -237,5 +273,10 @@ func (tok Token) HasLiteral() bool {
 }
 
 func (tok Token) IsKeyword() bool {
-	return keywords_begin < tok && tok < keywords_end
+	return _beginKeywords < tok && tok < _endKeywords
+}
+
+func (tok Token) IsOperator() bool {
+	return (_beginOperators < tok && tok < _endOperators) ||
+		(_beginKeywordOperators < tok && tok < _endKeywordOperators)
 }
