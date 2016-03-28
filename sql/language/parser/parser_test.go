@@ -16,21 +16,21 @@ func TestParseError(t *testing.T) {
 	stmt, err = prsr.ParseStatement()
 	assert.Nil(t, stmt)
 	if assert.NotNil(t, err, "expected a parsing error") {
-		assert.Equal(t, "sql:1:8: expected 'SELECT, INSERT, or UPDATE' but received 'Identifier'.", err.Error())
+		assert.Equal(t, "sql:1:8: expected 'SELECT, INSERT, or UPDATE' but received 'Identifier'", err.Error())
 	}
 
 	prsr = Make([]byte(`SELECT * WHERE`), Ruleset{})
 	stmt, err = prsr.ParseStatement()
 	assert.Nil(t, stmt)
 	if assert.NotNil(t, err, "expected a parsing error") {
-		assert.Equal(t, "sql:1:15: expected 'FROM' but received 'WHERE'.", err.Error())
+		assert.Equal(t, "sql:1:15: expected 'FROM' but received 'WHERE'", err.Error())
 	}
 
 	prsr = Make([]byte(`SELECT * FROM *`), Ruleset{})
 	stmt, err = prsr.ParseStatement()
 	assert.Nil(t, stmt)
 	if assert.NotNil(t, err, "expected a parsing error") {
-		assert.Equal(t, "sql:1:16: expected 'a table name' but received '*'.", err.Error())
+		assert.Equal(t, "sql:1:16: expected 'a table name' but received '*'", err.Error())
 	}
 
 	prsr = Make([]byte(`~`), Ruleset{})
@@ -57,7 +57,7 @@ func TestParseSelect(t *testing.T) {
 	stmt, err = prsr.ParseStatement()
 	assert.Nil(t, stmt)
 	if assert.NotNil(t, err) {
-		assert.Equal(t, "sql:1:32: cannot parse statement; reached unimplemented clause", err.Error())
+		assert.Equal(t, `sql:1:32: cannot parse statement; reached unimplemented clause at "PROCEDURE"`, err.Error())
 	}
 
 	// allow unimplmented clauses if someone says its ok
@@ -77,7 +77,7 @@ func TestParseInsert(t *testing.T) {
 	stmt, err := prsr.ParseStatement()
 	assert.Nil(t, stmt)
 	if assert.NotNil(t, err) {
-		assert.Equal(t, "sql:1:20: cannot parse statement; reached unimplemented clause", err.Error())
+		assert.Equal(t, `sql:1:20: cannot parse statement; reached unimplemented clause at "mytable"`, err.Error())
 	}
 }
 
@@ -86,6 +86,6 @@ func TestParseUpdate(t *testing.T) {
 	stmt, err := prsr.ParseStatement()
 	assert.Nil(t, stmt)
 	if assert.NotNil(t, err) {
-		assert.Equal(t, "sql:1:15: cannot parse statement; reached unimplemented clause", err.Error())
+		assert.Equal(t, `sql:1:15: cannot parse statement; reached unimplemented clause at "mytable"`, err.Error())
 	}
 }

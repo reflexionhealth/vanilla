@@ -35,5 +35,5 @@ func TestSqlParseError(t *testing.T) {
 
 	_, err = db.Query("SELECT * FROM")
 	assert.NotNil(t, err)
-	assert.Equal(t, "sql:1:14: expected 'a table name' but received 'End of statement'.", err.Error())
+	assert.Equal(t, "sql:1:14: expected 'a table name' but received 'End of statement'", err.Error())
 }
