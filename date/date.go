@@ -34,6 +34,12 @@ func Today() Date {
 	return Date{y, m, d, t.Location()}
 }
 
+func Yesterday() Date {
+	t := time.Now().AddDate(0, 0, -1)
+	y, m, d := t.Date()
+	return Date{y, m, d, t.Location()}
+}
+
 // Create a Date from a time.Time object
 func From(t time.Time) Date {
 	y, m, d := t.Date()
