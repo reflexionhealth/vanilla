@@ -20,6 +20,13 @@ import (
 	"unicode/utf8"
 )
 
+type SortOrder bool
+
+const (
+	ASC  SortOrder = false
+	DESC SortOrder = true
+)
+
 // Sqler is the interface for SQL expression builders
 type Sqler interface {
 	// Sql should build and return the SQL string representation of the expression
@@ -243,14 +250,16 @@ type SelectStmt struct {
 	columns    []Column
 	conditions []string
 	arguments  []interface{}
+	orderBy    []string
+	orderDesc  []SortOrder
 }
 
 func Select(columns string) *SelectStmt {
-	return &SelectStmt{nil, "", columns, nil, nil, nil}
+	return &SelectStmt{nil, "", columns, nil, nil, nil, nil, nil}
 }
 
 func SelectColumns(columns []Column) *SelectStmt {
-	return &SelectStmt{nil, "", "", columns, nil, nil}
+	return &SelectStmt{nil, "", "", columns, nil, nil, nil, nil}
 }
 
 func (ss *SelectStmt) Dialect(dialect *Dialect) *SelectStmt {
@@ -271,6 +280,12 @@ func (ss *SelectStmt) FromTable(table Table) *SelectStmt {
 func (ss *SelectStmt) Where(condition string, args ...interface{}) *SelectStmt {
 	ss.conditions = append(ss.conditions, condition)
 	ss.arguments = append(ss.arguments, args...)
+	return ss
+}
+
+func (ss *SelectStmt) OrderBy(column string, isDesc SortOrder) *SelectStmt {
+	ss.orderBy = append(ss.orderBy, column)
+	ss.orderDesc = append(ss.orderDesc, isDesc)
 	return ss
 }
 
@@ -298,6 +313,22 @@ func (ss *SelectStmt) Sql() string {
 				qry.WriteString(" AND ")
 			}
 			qry.WriteString(cond)
+		}
+	}
+
+	if len(ss.orderBy) > 0 {
+		qry.WriteString(" ORDER BY ")
+		for i, col := range ss.orderBy {
+			if i > 0 {
+				qry.WriteString(", ")
+			}
+			qry.WriteString(col)
+
+			if ss.orderDesc[i] {
+				qry.WriteString(" DESC")
+			} else {
+				qry.WriteString(" ASC")
+			}
 		}
 	}
 
