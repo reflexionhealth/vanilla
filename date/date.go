@@ -12,6 +12,14 @@ const (
 	NanosecondsInSecond  = 1000 * MicrosecondsInSecond
 )
 
+const RFC3339 = "2006-01-02"
+
+// Parse string into desired date format i.e RFC3339
+func Parse(format string, source string) (Date, error) {
+	t, err := time.Parse(format, source)
+	return From(t), err
+}
+
 // Date is a plain date, without time or timezone info (use time.Time for those!)
 type Date struct {
 	Year  int
@@ -34,6 +42,12 @@ func Today() Date {
 	return Date{y, m, d, t.Location()}
 }
 
+func TodayInTimezone(location *time.Location) Date {
+	t := time.Now().In(location)
+	y, m, d := t.Date()
+	return Date{y, m, d, location}
+}
+
 func Yesterday() Date {
 	t := time.Now().AddDate(0, 0, -1)
 	y, m, d := t.Date()
@@ -44,6 +58,12 @@ func Yesterday() Date {
 func From(t time.Time) Date {
 	y, m, d := t.Date()
 	return Date{y, m, d, t.Location()}
+}
+
+func (d Date) AddDays(num int) Date {
+	t := time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, d.location).AddDate(0, 0, num)
+	year, month, day := t.Date()
+	return Date{year, month, day, d.location}
 }
 
 func (d Date) PrevDay() Date {
@@ -86,11 +106,27 @@ func (d Date) MostRecent(weekday time.Weekday) Date {
 	}
 }
 
+// MostSoon returns today if today is the given weekday, otherwise it returns
+// the date of the upcoming day for that weekday.
+func (d Date) MostSoon(weekday time.Weekday) Date {
+	if d.Weekday() == weekday {
+		return d
+	} else if d.Weekday() < weekday {
+		return d.AddDays(int(weekday - d.Weekday()))
+	} else {
+		return d.AddDays(7 - int(d.Weekday()-weekday))
+	}
+}
+
 func (d Date) Before(other Date) bool {
 	return (d.Year < other.Year ||
 		(d.Year == other.Year &&
 			(d.Month < other.Month ||
 				(d.Month == other.Month && d.Day < other.Day))))
+}
+
+func (d Date) Equal(other Date) bool {
+	return d == other
 }
 
 func (d Date) After(other Date) bool {
