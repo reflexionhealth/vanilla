@@ -7,36 +7,71 @@ import (
 )
 
 type Version struct {
-	Major  int
-	Minor  int
-	Patch  int
-	Build  int
-	Commit string
+	Major int
+	Minor int
+	Patch int
 }
 
 func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
-var Regexp = regexp.MustCompile(`v?((\d+)(\.\d+)?(\.\d+)?)`)
+var Regexp = regexp.MustCompile(`v?(\d+)(?:\.(\d+))?(?:\.(\d+))?`)
+var StrictRegexp = regexp.MustCompile("^" + Regexp.String())
 
-func Parse(input string) Version {
-	var major, minor, patch int
-	matches := Regexp.FindStringSubmatch(input)
+// Parse will parse a semantive version from a string in any of these formats:
+//
+//     1        // only major
+//     1.0      // major/minor
+//     1.0.0    // major/minor/patch
+//    v1.0.0    // prefixed with "v"
+//     1.0.0cc  // with trailing characters (currently ignored)
+//
+func Parse(input string) (v Version, ok bool) {
+	var err error
+	matches := StrictRegexp.FindStringSubmatch(input)
 	switch len(matches) {
-	case 5:
-		patch, _ = strconv.Atoi(matches[4])
-		fallthrough
 	case 4:
-		minor, _ = strconv.Atoi(matches[3])
+		v.Patch, err = strconv.Atoi(matches[3])
+		if err != nil {
+			ok = false
+		}
 		fallthrough
 	case 3:
-		major, _ = strconv.Atoi(matches[2])
+		v.Minor, err = strconv.Atoi(matches[2])
+		if err != nil {
+			ok = false
+		}
+		fallthrough
+	case 2:
+		v.Major, _ = strconv.Atoi(matches[1])
 		break
 	default:
-		major = 1
-		break
+		ok = false
 	}
+	return
+}
 
-	return Version{Major: major, Minor: minor, Patch: patch}
+func (v Version) LessThan(o Version) bool {
+	return v.Major < o.Major ||
+		(v.Major == o.Major &&
+			(v.Minor < o.Minor ||
+				(v.Minor == o.Minor &&
+					(v.Patch < o.Patch))))
+}
+
+func (v Version) GreaterThan(o Version) bool {
+	return v.Major > o.Major ||
+		(v.Major == o.Major &&
+			(v.Minor > o.Minor ||
+				(v.Minor == o.Minor &&
+					(v.Patch > o.Patch))))
+}
+
+func (v Version) AtLeast(o Version) bool {
+	return !o.GreaterThan(v)
+}
+
+func (v Version) AtMost(o Version) bool {
+	return !o.LessThan(v)
 }
