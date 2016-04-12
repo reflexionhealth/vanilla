@@ -18,11 +18,11 @@ func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
-var VersionRegex = regexp.MustCompile(`v?((\d+)(\.\d+)?(\.\d+)?)`)
+var Regexp = regexp.MustCompile(`v?((\d+)(\.\d+)?(\.\d+)?)`)
 
-func ParseVersion(input string) Version {
+func Parse(input string) Version {
 	var major, minor, patch int
-	matches := VersionRegex.FindStringSubmatch(input)
+	matches := Regexp.FindStringSubmatch(input)
 	switch len(matches) {
 	case 5:
 		patch, _ = strconv.Atoi(matches[4])
