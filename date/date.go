@@ -172,7 +172,7 @@ func (d Date) String() string {
 func (d *Date) Scan(src interface{}) error {
 	t, ok := src.(time.Time)
 	if !ok {
-		return errors.New("unstable/date: scan value was not a Time")
+		return errors.New("date: scan value was not a Time")
 	}
 
 	*d = From(t)
