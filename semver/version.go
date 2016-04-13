@@ -13,7 +13,7 @@ type Version struct {
 }
 
 func (v Version) String() string {
-	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
+	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
 }
 
 var Regexp = regexp.MustCompile(`v?(\d+)(?:\.(\d+))?(?:\.(\d+))?`)
@@ -28,28 +28,22 @@ var StrictRegexp = regexp.MustCompile("^" + Regexp.String())
 //     1.0.0cc  // with trailing characters (currently ignored)
 //
 func Parse(input string) (v Version, ok bool) {
-	var err error
 	matches := StrictRegexp.FindStringSubmatch(input)
 	switch len(matches) {
 	case 4:
-		v.Patch, err = strconv.Atoi(matches[3])
-		if err != nil {
-			ok = false
-		}
+		v.Patch, _ = strconv.Atoi(matches[3])
 		fallthrough
 	case 3:
-		v.Minor, err = strconv.Atoi(matches[2])
-		if err != nil {
-			ok = false
-		}
+		v.Minor, _ = strconv.Atoi(matches[2])
 		fallthrough
 	case 2:
 		v.Major, _ = strconv.Atoi(matches[1])
 		break
 	default:
-		ok = false
+		return
 	}
-	return
+
+	return v, true
 }
 
 func (v Version) LessThan(o Version) bool {

@@ -10,7 +10,7 @@ func TestParse(t *testing.T) {
 	examples := []struct {
 		String  string
 		Version Version
-		Ok      bool
+		NotOk   bool
 	}{
 		{String: "0.0.0", Version: Version{0, 0, 0}},
 		{String: "1.0.0", Version: Version{1, 0, 0}},
@@ -20,14 +20,14 @@ func TestParse(t *testing.T) {
 		{String: "v9a", Version: Version{9, 0, 0}},
 		{String: "v9.1a", Version: Version{9, 1, 0}},
 
-		{String: "hello world", Ok: false},
-		{String: "good 1", Ok: false},
+		{String: "hello world", NotOk: true},
+		{String: "good 1", NotOk: true},
 	}
 
 	for _, example := range examples {
 		parsed, ok := Parse(example.String)
 		assert.Equal(t, example.Version, parsed, example.String)
-		assert.Equal(t, example.Ok, ok, example.String)
+		assert.Equal(t, example.NotOk, !ok, example.String)
 	}
 }
 
@@ -57,5 +57,24 @@ func TestComparisons(t *testing.T) {
 		assert.Equal(t, ex.Gt, ex.A.GreaterThan(ex.B), ex.A.String()+" > "+ex.B.String())
 		assert.Equal(t, ex.Lte, ex.A.AtMost(ex.B), ex.A.String()+" <= "+ex.B.String())
 		assert.Equal(t, ex.Gte, ex.A.AtLeast(ex.B), ex.A.String()+" >= "+ex.B.String())
+	}
+}
+
+func TestString(t *testing.T) {
+	examples := []struct {
+		Version Version
+		String  string
+	}{
+		{Version: Version{0, 0, 0}, String: "0.0.0"},
+		{Version: Version{1, 0, 0}, String: "1.0.0"},
+		{Version: Version{14, 54, 23}, String: "14.54.23"},
+		{Version: Version{0, 2, 4}, String: "0.2.4"},
+		{Version: Version{15, 0, 3}, String: "15.0.3"},
+		{Version: Version{9, 0, 0}, String: "9.0.0"},
+		{Version: Version{9, 1, 0}, String: "9.1.0"},
+	}
+
+	for _, ex := range examples {
+		assert.Equal(t, ex.String, ex.Version.String(), ex.String)
 	}
 }
