@@ -1,6 +1,7 @@
 package semver
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -68,4 +69,24 @@ func (v Version) AtLeast(o Version) bool {
 
 func (v Version) AtMost(o Version) bool {
 	return !o.LessThan(v)
+}
+
+// Implements json.Marshaler interface
+func (v Version) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%v.%v.%v"`, v.Major, v.Minor, v.Patch)), nil
+}
+
+// Implements json.Unmarshaler interface
+func (v *Version) UnmarshalJSON(bytes []byte) error {
+	if bytes[0] != '"' || bytes[len(bytes)-1] != '"' {
+		return errors.New("semver: cannot parse version from non-string JSON value")
+	}
+
+	parsed, ok := Parse(string(bytes[1 : len(bytes)-1]))
+	if !ok {
+		return errors.New("semver: json string is not a valid version")
+	}
+
+	*v = parsed
+	return nil
 }

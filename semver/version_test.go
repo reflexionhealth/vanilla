@@ -1,6 +1,7 @@
 package semver
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func TestComparisons(t *testing.T) {
 		Lt, Lte bool
 		Gt, Gte bool
 	}{
-		// Simple combinations
+		// TODO: Constraint based testing (ie. https://golang.org/pkg/testing/quick)
 		{Version{0, 0, 0}, Version{0, 0, 0}, false, true, false, true},
 		{Version{0, 0, 1}, Version{0, 0, 0}, false, false, true, true},
 		{Version{0, 1, 0}, Version{0, 0, 0}, false, false, true, true},
@@ -76,5 +77,49 @@ func TestString(t *testing.T) {
 
 	for _, ex := range examples {
 		assert.Equal(t, ex.String, ex.Version.String(), ex.String)
+	}
+}
+
+func TestMarshalJSON(t *testing.T) {
+	b1, err1 := json.Marshal(Version{1, 0, 0})
+	assert.Nil(t, err1)
+	assert.Equal(t, `"1.0.0"`, string(b1))
+	b2, err2 := json.Marshal(Version{2, 0, 30})
+	assert.Nil(t, err2)
+	assert.Equal(t, `"2.0.30"`, string(b2))
+}
+
+func TestUnmarshalJSON(t *testing.T) {
+	examples := []struct {
+		Json    string
+		Version Version
+	}{
+		{`"5.0.0"`, Version{5, 0, 0}},
+		{`"v2.4.12"`, Version{2, 4, 12}},
+		{`"3.5.0ab"`, Version{3, 5, 0}},
+		{`"8.22"`, Version{8, 22, 0}},
+	}
+
+	var v Version
+	for _, ex := range examples {
+		err := json.Unmarshal([]byte(ex.Json), &v)
+		assert.Nil(t, err, ex.Json)
+		assert.Equal(t, ex.Version, v, ex.Json)
+	}
+
+	badExamples := []struct {
+		Json  string
+		Error string
+	}{
+		{`null`, "semver: cannot parse version from non-string JSON value"},
+		{`""`, "semver: json string is not a valid version"},
+		{`"bogus"`, "semver: json string is not a valid version"},
+	}
+
+	for _, ex := range badExamples {
+		err := json.Unmarshal([]byte(ex.Json), &v)
+		if assert.NotNil(t, err, ex.Json) {
+			assert.Equal(t, ex.Error, err.Error(), ex.Json)
+		}
 	}
 }
