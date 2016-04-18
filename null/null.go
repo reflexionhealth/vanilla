@@ -103,6 +103,72 @@ func (n *String) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+type Float struct {
+	Float float32
+	Valid bool
+}
+
+func (n *Float) Set(value float32) {
+	n.Valid = true
+	n.Float = value
+}
+
+func (n *Float) Scan(src interface{}) error {
+	n.Valid = false
+	if src == nil {
+		n.Float = 0.0
+		return nil
+	}
+
+	switch t := src.(type) {
+	case string:
+		f64, err := strconv.ParseFloat(t, 32)
+		if err != nil {
+			return fmt.Errorf("sql/null: converting driver.Value type %T (%q) to a null.Float: %v", src, t, strconvErr(err))
+		}
+		n.Set(float32(f64))
+	case int64, float32:
+		n.Set(t.(float32))
+	}
+
+	return nil
+}
+
+// Implement driver.Valuer interface
+func (n Float) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	} else {
+		return n.Float, nil
+	}
+}
+
+// Implement json.Marshaler interface
+func (n Float) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		return json.Marshal(n.Float)
+	} else {
+		return JsonNull, nil
+	}
+}
+
+// Implement json.Unmarshaler interface
+func (n *Float) UnmarshalJSON(bytes []byte) error {
+	n.Valid = false
+	if bytes == nil || string(bytes) == "null" {
+		n.Float = 0.0
+		return nil
+	}
+
+	err := json.Unmarshal(bytes, &n.Float)
+	if err != nil {
+		return err
+	}
+
+	n.Valid = true
+	return nil
+}
+
 // Int is a nullable int that doesn't require an extra allocation or dereference.
 // The builting sql package has a NullInt64, but it doesn't implement json.Marshaler
 // and is an int64 instead of an int.
