@@ -60,8 +60,9 @@ func compareFunc(t *testing.T, a, b interface{}) {
 func TestListOfRoutes(t *testing.T) {
 	server := New()
 	server.GET("/", handler_test1)
-	group := server.Group("/users")
+
 	{
+		group := server.Group("/users")
 		group.GET("/", handler_test2)
 		group.GET("/:id", handler_test1)
 		group.POST("/:id", handler_test2)
@@ -94,3 +95,29 @@ func TestListOfRoutes(t *testing.T) {
 
 func handler_test1(c *Context) {}
 func handler_test2(c *Context) {}
+
+func TestAllowedMethods(t *testing.T) {
+	server := New()
+	server.OPTIONS("/*any", func(c *Context) {})
+	server.GET("/", func(c *Context) {})
+	server.PUT("/comments", func(c *Context) {})
+
+	{
+		group := server.Group("/users")
+		group.GET("", handler_test2)
+		group.GET("/:id", handler_test1)
+		group.POST("/:id", handler_test2)
+	}
+
+	var methods []string
+	methods = server.AllowedMethods("/")
+	assert.Equal(t, []string{"OPTIONS", "GET"}, methods)
+	methods = server.AllowedMethods("/comments")
+	assert.Equal(t, []string{"OPTIONS", "PUT"}, methods)
+	methods = server.AllowedMethods("/users")
+	assert.Equal(t, []string{"OPTIONS", "GET"}, methods)
+	methods = server.AllowedMethods("/users/:id")
+	assert.Equal(t, []string{"OPTIONS", "GET", "POST"}, methods)
+	methods = server.AllowedMethods("/unknown")
+	assert.Equal(t, []string{"OPTIONS"}, methods)
+}

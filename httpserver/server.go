@@ -277,3 +277,15 @@ func (s *Server) handleHTTPRequest(c *Context) {
 		c.Response.Text(404, "Not Found")
 	}
 }
+
+// AllowedMethods returns a slice of HTTP methods that are allowed for a path
+func (s *Server) AllowedMethods(path string) []string {
+	var methods []string
+	for _, tree := range s.methodTrees {
+		handlers, _ := tree.root.getValue(path, nil)
+		if handlers != nil {
+			methods = append(methods, tree.method)
+		}
+	}
+	return methods
+}
