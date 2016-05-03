@@ -252,14 +252,15 @@ type SelectStmt struct {
 	arguments  []interface{}
 	orderBy    []string
 	orderDesc  []SortOrder
+	limit      int
 }
 
 func Select(columns string) *SelectStmt {
-	return &SelectStmt{nil, "", columns, nil, nil, nil, nil, nil}
+	return &SelectStmt{nil, "", columns, nil, nil, nil, nil, nil, 0}
 }
 
 func SelectColumns(columns []Column) *SelectStmt {
-	return &SelectStmt{nil, "", "", columns, nil, nil, nil, nil}
+	return &SelectStmt{nil, "", "", columns, nil, nil, nil, nil, 0}
 }
 
 func (ss *SelectStmt) Dialect(dialect *Dialect) *SelectStmt {
@@ -286,6 +287,11 @@ func (ss *SelectStmt) Where(condition string, args ...interface{}) *SelectStmt {
 func (ss *SelectStmt) OrderBy(column string, isDesc SortOrder) *SelectStmt {
 	ss.orderBy = append(ss.orderBy, column)
 	ss.orderDesc = append(ss.orderDesc, isDesc)
+	return ss
+}
+
+func (ss *SelectStmt) Limit(num int) *SelectStmt {
+	ss.limit = num
 	return ss
 }
 
@@ -330,6 +336,10 @@ func (ss *SelectStmt) Sql() string {
 				qry.WriteString(" ASC")
 			}
 		}
+	}
+
+	if ss.limit > 0 {
+		qry.WriteString(fmt.Sprintf(" LIMIT %d", ss.limit))
 	}
 
 	return qry.String()
