@@ -139,7 +139,7 @@ func (n Float) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
 	} else {
-		return n.Float, nil
+		return float64(n.Float), nil
 	}
 }
 
