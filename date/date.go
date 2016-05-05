@@ -4,7 +4,11 @@ import (
 	"database/sql/driver"
 	"errors"
 	"time"
+
+	"github.com/reflexionhealth/vanilla/clock"
 )
+
+var Clock *clock.Source = &clock.Default
 
 const (
 	MillisecondsInSecond = 1000
@@ -36,7 +40,7 @@ func At(y int, m time.Month, d int, l *time.Location) Date {
 }
 
 func TodayIn(loc *time.Location) Date {
-	t := time.Now().In(loc)
+	t := Clock.In(loc)
 	y, m, d := t.Date()
 	return Date{y, m, d, loc}
 }
@@ -46,9 +50,7 @@ func TodayUTC() Date {
 }
 
 func YesterdayIn(loc *time.Location) Date {
-	t := time.Now().In(loc).AddDate(0, 0, -1)
-	y, m, d := t.Date()
-	return Date{y, m, d, loc}
+	return TodayIn(loc).PrevDay()
 }
 
 // Create a Date from a time.Time object
