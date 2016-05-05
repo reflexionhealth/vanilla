@@ -40,7 +40,7 @@ func (s Source) In(loc *time.Location) time.Time {
 	}
 }
 
-func (s Source) UTC() time.Time {
+func (s Source) Utc() time.Time {
 	return s.In(time.UTC)
 }
 
