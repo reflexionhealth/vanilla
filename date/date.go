@@ -35,23 +35,20 @@ func At(y int, m time.Month, d int, l *time.Location) Date {
 	return Date{y, m, d, l}
 }
 
-// Create a Date from Time.Now()
-func Today() Date {
-	t := time.Now()
+func TodayIn(loc *time.Location) Date {
+	t := time.Now().In(loc)
 	y, m, d := t.Date()
-	return Date{y, m, d, t.Location()}
+	return Date{y, m, d, loc}
 }
 
-func TodayInTimezone(location *time.Location) Date {
-	t := time.Now().In(location)
-	y, m, d := t.Date()
-	return Date{y, m, d, location}
+func TodayUTC() Date {
+	return TodayIn(time.UTC)
 }
 
-func Yesterday() Date {
-	t := time.Now().AddDate(0, 0, -1)
+func YesterdayIn(loc *time.Location) Date {
+	t := time.Now().In(loc).AddDate(0, 0, -1)
 	y, m, d := t.Date()
-	return Date{y, m, d, t.Location()}
+	return Date{y, m, d, loc}
 }
 
 // Create a Date from a time.Time object
