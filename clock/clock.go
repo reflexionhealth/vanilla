@@ -7,7 +7,7 @@ import (
 
 func AtTime(t time.Time, block func())       { Default.AtTime(t, block) }
 func In(loc *time.Location) time.Time        { return Default.In(loc) }
-func UTC() time.Time                         { return Default.UTC() }
+func Utc() time.Time                         { return Default.Utc() }
 func After(d time.Duration) <-chan time.Time { return Default.After(d) }
 func Tick(d time.Duration) <-chan time.Time  { return Default.Tick(d) }
 func Sleep(d time.Duration)                  { Default.Sleep(d) }

@@ -45,7 +45,7 @@ func TodayIn(loc *time.Location) Date {
 	return Date{y, m, d, loc}
 }
 
-func TodayUTC() Date {
+func TodayUtc() Date {
 	return TodayIn(time.UTC)
 }
 
