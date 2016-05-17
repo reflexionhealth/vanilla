@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/reflexionhealth/vanilla/httpserver/request"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,13 +112,37 @@ func TestAllowedMethods(t *testing.T) {
 
 	var methods []string
 	methods = server.AllowedMethods("/")
-	assert.Equal(t, []string{"OPTIONS", "GET"}, methods)
+	assert.Equal(t, []string{"GET", "OPTIONS"}, methods)
 	methods = server.AllowedMethods("/comments")
-	assert.Equal(t, []string{"OPTIONS", "PUT"}, methods)
+	assert.Equal(t, []string{"PUT", "OPTIONS"}, methods)
 	methods = server.AllowedMethods("/users")
-	assert.Equal(t, []string{"OPTIONS", "GET"}, methods)
+	assert.Equal(t, []string{"GET", "OPTIONS"}, methods)
 	methods = server.AllowedMethods("/users/:id")
-	assert.Equal(t, []string{"OPTIONS", "GET", "POST"}, methods)
+	assert.Equal(t, []string{"GET", "POST", "OPTIONS"}, methods)
 	methods = server.AllowedMethods("/unknown")
-	assert.Equal(t, []string{"OPTIONS"}, methods)
+	assert.Equal(t, []string(nil), methods)
+}
+
+func TestHandleOptions(t *testing.T) {
+	server := New()
+	server.GET("/", func(c *Context) {})
+	server.GET("/items", func(c *Context) {})
+	server.POST("/items", func(c *Context) {})
+
+	examples := []struct {
+		Route  string
+		Allow  string
+		Status int
+	}{
+		{"/unknown", "", 404},
+		{"/", "GET, OPTIONS", 200},
+		{"/items", "GET, POST, OPTIONS", 200},
+	}
+
+	for _, ex := range examples {
+		req := request.New("OPTIONS", ex.Route)
+		res := request.Handle(server, req)
+		assert.Equal(t, ex.Status, res.Code, ex.Route)
+		assert.Equal(t, ex.Allow, res.Header().Get("Allow"), ex.Route)
+	}
 }

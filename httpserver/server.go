@@ -11,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -42,8 +43,11 @@ type Server struct {
 	contextPool sync.Pool
 	methodTrees routeTrees
 
+	HandleNotAllowed bool
+	HandleOptions    bool
+
 	notFoundHandlers    HandlersChain
-	noMethodHandlers    HandlersChain
+	notAllowedHandlers  HandlersChain
 	unavailableHandlers HandlersChain
 	unavailable         int32 // bool used with atomic Load/Store
 
@@ -59,6 +63,9 @@ func New() *Server {
 			root:     true,
 		},
 		methodTrees: make(routeTrees, 0, 9),
+
+		HandleNotAllowed: true,
+		HandleOptions:    true,
 	}
 	s.RouteGroup.server = s
 	s.contextPool.New = func() interface{} { return &Context{} }
@@ -114,7 +121,7 @@ func (s *Server) NotFound(handlers ...HandlerFunc) {
 
 // NoMethod registers a handler chain for requests with a method that isn't allowed for a path
 func (s *Server) NoMethod(handlers ...HandlerFunc) {
-	s.noMethodHandlers = combineHandlers(s.Handlers, handlers)
+	s.notAllowedHandlers = combineHandlers(s.Handlers, handlers)
 }
 
 // Unavailable registers a handler chain for requests received while the server is marked unavailable
@@ -248,12 +255,19 @@ func (s *Server) handleHTTPRequest(c *Context) {
 	}
 
 	// Handle method not allowed
-	if len(s.notFoundHandlers) > 0 {
+	if method == "OPTIONS" && s.HandleOptions {
+		methods := s.AllowedMethods(c.Request.URL.Path)
+		if len(methods) > 0 {
+			c.Response.Header().Set("Allow", strings.Join(methods, ", "))
+			c.Response.HEAD(200)
+			return
+		}
+	} else if len(s.notFoundHandlers) > 0 && s.HandleNotAllowed {
 		for _, tree := range s.methodTrees {
 			if tree.method != method {
 				handlers, _ := tree.root.getValue(path, nil)
 				if handlers != nil {
-					c.handlers = s.noMethodHandlers
+					c.handlers = s.notAllowedHandlers
 					c.Params = c.Params[0:0]
 					c.Response.status = 405
 					c.PerformRequest()
@@ -281,11 +295,21 @@ func (s *Server) handleHTTPRequest(c *Context) {
 // AllowedMethods returns a slice of HTTP methods that are allowed for a path
 func (s *Server) AllowedMethods(path string) []string {
 	var methods []string
+
 	for _, tree := range s.methodTrees {
+		if tree.method == "OPTIONS" {
+			continue
+		}
+
 		handlers, _ := tree.root.getValue(path, nil)
 		if handlers != nil {
 			methods = append(methods, tree.method)
 		}
 	}
+
+	if len(methods) > 0 {
+		methods = append(methods, "OPTIONS")
+	}
+
 	return methods
 }
