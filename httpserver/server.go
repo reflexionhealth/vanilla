@@ -108,8 +108,9 @@ func (s *Server) addRoute(method, path string, handlers HandlersChain) {
 	root.addRoute(path, handlers)
 }
 
-// Options registers a handler chain for OPTIONS requests, with the "Allow" header set automatically.
-func (s *Server) Options(handlers ...HandlerFunc) {
+// DescribeOptions registers a global handler chain for OPTIONS requests, with the "Allow" header
+// set automatically to list allowed HTTP methods for the route.
+func (s *Server) DescribeOptions(handlers ...HandlerFunc) {
 	s.optionsHandlers = combineHandlers(s.Handlers, handlers)
 }
 
