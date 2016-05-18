@@ -43,9 +43,7 @@ type Server struct {
 	contextPool sync.Pool
 	methodTrees routeTrees
 
-	HandleNotAllowed bool
-	HandleOptions    bool
-
+	optionsHandlers     HandlersChain
 	notFoundHandlers    HandlersChain
 	notAllowedHandlers  HandlersChain
 	unavailableHandlers HandlersChain
@@ -63,9 +61,6 @@ func New() *Server {
 			root:     true,
 		},
 		methodTrees: make(routeTrees, 0, 9),
-
-		HandleNotAllowed: true,
-		HandleOptions:    true,
 	}
 	s.RouteGroup.server = s
 	s.contextPool.New = func() interface{} { return &Context{} }
@@ -113,9 +108,13 @@ func (s *Server) addRoute(method, path string, handlers HandlersChain) {
 	root.addRoute(path, handlers)
 }
 
+// Options registers a handler chain for OPTIONS requests, with the "Allow" header set automatically.
+func (s *Server) Options(handlers ...HandlerFunc) {
+	s.optionsHandlers = combineHandlers(s.Handlers, handlers)
+}
+
 // NotFound registers a handler chain for requests with a path that does not exist
 func (s *Server) NotFound(handlers ...HandlerFunc) {
-	s.notFoundHandlers = combineHandlers(s.Handlers, handlers)
 	s.notFoundHandlers = combineHandlers(s.Handlers, handlers)
 }
 
@@ -255,22 +254,33 @@ func (s *Server) handleHTTPRequest(c *Context) {
 	}
 
 	// Handle method not allowed
-	if method == "OPTIONS" && s.HandleOptions {
+	if method == "OPTIONS" {
 		methods := s.AllowedMethods(c.Request.URL.Path)
 		if len(methods) > 0 {
 			c.Response.Header().Set("Allow", strings.Join(methods, ", "))
-			c.Response.HEAD(200)
+			if len(s.optionsHandlers) > 0 {
+				c.Params = c.Params[0:0]
+				c.handlers = s.optionsHandlers
+				c.PerformRequest()
+			}
+
+			if !c.Response.Rendered() {
+				c.Response.HEAD(200)
+			}
 			return
 		}
-	} else if len(s.notFoundHandlers) > 0 && s.HandleNotAllowed {
+	} else if len(s.notFoundHandlers) > 0 {
 		for _, tree := range s.methodTrees {
 			if tree.method != method {
 				handlers, _ := tree.root.getValue(path, nil)
 				if handlers != nil {
-					c.handlers = s.notAllowedHandlers
-					c.Params = c.Params[0:0]
-					c.Response.status = 405
-					c.PerformRequest()
+					if len(s.notAllowedHandlers) > 0 {
+						c.handlers = s.notAllowedHandlers
+						c.Params = c.Params[0:0]
+						c.Response.status = 405
+						c.PerformRequest()
+					}
+
 					if !c.Response.Rendered() {
 						c.Response.Text(405, "No Method")
 					}
