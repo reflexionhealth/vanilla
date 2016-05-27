@@ -164,7 +164,11 @@ func (d Date) EndOfDayIn(timezone *time.Location) time.Time {
 }
 
 func (d Date) String() string {
-	return d.BeginningOfDayIn(time.UTC).Format("2006-01-02")
+	return d.Format("2006-01-02")
+}
+
+func (d Date) Format(format string) string {
+	return d.BeginningOfDayIn(time.UTC).Format(format)
 }
 
 // Implements sql.Scanner interface
@@ -185,7 +189,7 @@ func (d Date) Value() (driver.Value, error) {
 
 // Implements json.Marshaler interface
 func (d Date) MarshalJSON() ([]byte, error) {
-	return []byte(d.BeginningOfDayIn(time.UTC).Format(`"2006-01-02"`)), nil
+	return []byte(d.Format(`"2006-01-02"`)), nil
 }
 
 // Implements json.Unmarshaler interface
