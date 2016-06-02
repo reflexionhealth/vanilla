@@ -38,7 +38,7 @@ func (r *Response) Rendered() bool {
 
 func (r *Response) HTML(status int, html string) (err error) {
 	r.Render(status, ContentTypeHTML)
-	_, err = io.WriteString(r.ResponseWriter, ContentTypeText)
+	_, err = io.WriteString(r.ResponseWriter, html)
 	return
 }
 
