@@ -129,6 +129,8 @@ func (n *Float) Scan(src interface{}) error {
 		n.Set(float32(f64))
 	case int64, float32:
 		n.Set(t.(float32))
+	case float64:
+		n.Set(float32(t))
 	}
 
 	return nil
