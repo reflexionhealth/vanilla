@@ -522,6 +522,62 @@ func (us *UpdateStmt) Args() []interface{} {
 	return append(us.columnValues, us.conditionValues...)
 }
 
+// DeleteStmt is an expression builder for statements of the form:
+//
+//   DELETE FROM table WHERE ...
+//
+// TODO: Tests for DeleteStmt et al.
+type DeleteStmt struct {
+	dialect         *Dialect
+	table           string
+	conditions      []string
+	conditionValues []interface{}
+}
+
+func Delete(name string) *DeleteStmt {
+	return &DeleteStmt{nil, name, nil, nil}
+}
+
+func (ds *DeleteStmt) Dialect(dialect *Dialect) *DeleteStmt {
+	ds.dialect = dialect
+	return ds
+}
+
+func (ds *DeleteStmt) From(table string) *DeleteStmt {
+	ds.table = table
+	return ds
+}
+
+func (ds *DeleteStmt) Where(condition string, args ...interface{}) *DeleteStmt {
+	ds.conditions = append(ds.conditions, condition)
+	ds.conditionValues = append(ds.conditionValues, args...)
+	return ds
+}
+
+func (ds *DeleteStmt) Args() []interface{} {
+	return ds.conditionValues
+}
+
+func (ds *DeleteStmt) Sql() string {
+	dct := useDialect(ds.dialect)
+	qry := bytes.Buffer{}
+	qry.WriteString("DELETE FROM ")
+	dct.WriteIdentifier(&qry, ds.table)
+
+	if len(ds.conditions) > 0 {
+		qry.WriteString(" WHERE ")
+
+		for i, cond := range ds.conditions {
+			if i > 0 {
+				qry.WriteString(", ")
+			}
+			qry.WriteString(cond)
+		}
+
+	}
+	return qry.String()
+}
+
 // A ColumnsFlag is a flag which controls how Columns and ColumnNames interpret
 // struct fields as columns.
 type ColumnsFlag int

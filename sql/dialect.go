@@ -87,3 +87,7 @@ func (d *Dialect) Update(name string) *UpdateStmt {
 func (d *Dialect) UpdateTable(table Table) *UpdateStmt {
 	return UpdateTable(table).Dialect(d)
 }
+
+func (d *Dialect) Delete(name string) *DeleteStmt {
+	return Delete(name).Dialect(d)
+}
