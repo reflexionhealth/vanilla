@@ -59,6 +59,10 @@ func From(t time.Time) Date {
 	return Date{y, m, d, t.Location()}
 }
 
+func (d Date) DaysAfter(other Date) int {
+	return int(d.BeginningOfDayIn(time.UTC).Sub(other.BeginningOfDayIn(time.UTC)).Hours() / 24)
+}
+
 func (d Date) AddDays(num int) Date {
 	t := time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, d.location).AddDate(0, 0, num)
 	year, month, day := t.Date()
