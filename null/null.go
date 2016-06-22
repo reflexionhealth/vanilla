@@ -104,11 +104,11 @@ func (n *String) UnmarshalJSON(bytes []byte) error {
 }
 
 type Float struct {
-	Float float32
+	Float float64
 	Valid bool
 }
 
-func (n *Float) Set(value float32) {
+func (n *Float) Set(value float64) {
 	n.Valid = true
 	n.Float = value
 }
@@ -122,15 +122,19 @@ func (n *Float) Scan(src interface{}) error {
 
 	switch t := src.(type) {
 	case string:
-		f64, err := strconv.ParseFloat(t, 32)
+		f64, err := strconv.ParseFloat(t, 64)
 		if err != nil {
 			return fmt.Errorf("sql/null: converting driver.Value type %T (%q) to a null.Float: %v", src, t, strconvErr(err))
 		}
-		n.Set(float32(f64))
-	case int64, float32:
-		n.Set(t.(float32))
+		n.Set(f64)
 	case float64:
-		n.Set(float32(t))
+		n.Set(t)
+	case float32:
+		n.Set(float64(t))
+	case int64:
+		n.Set(float64(t))
+	case int32:
+		n.Set(float64(t))
 	}
 
 	return nil
