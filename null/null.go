@@ -19,9 +19,18 @@ var JsonNull = []byte("null")
 // The builting sql package has a NullBool, but it doesn't implement json.Marshaler.
 type Bool sql.NullBool
 
+func SomeBool(value bool) Bool {
+	return Bool{Bool: value, Valid: true}
+}
+
 func (n *Bool) Set(value bool) {
 	n.Valid = true
 	n.Bool = value
+}
+
+func (n *Bool) Unset() {
+	n.Valid = false
+	n.Bool = false
 }
 
 // Implement sql.Scanner interface
@@ -63,9 +72,18 @@ func (n *Bool) UnmarshalJSON(bytes []byte) error {
 // The builting sql package has a NullString, but it doesn't implement json.Marshaler.
 type String sql.NullString
 
+func SomeString(value string) String {
+	return String{String: value, Valid: true}
+}
+
 func (n *String) Set(value string) {
 	n.Valid = true
 	n.String = value
+}
+
+func (n *String) Unset() {
+	n.Valid = false
+	n.String = ""
 }
 
 // Implement sql.Scanner interface
@@ -103,9 +121,15 @@ func (n *String) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+// Float is a nullable float64 that doesn't require an extra allocation or dereference.
+// The builting sql package has a NullFloat64, but it doesn't implement json.Marshaler.
 type Float struct {
 	Float float64
 	Valid bool
+}
+
+func SomeFloat(value float64) Float {
+	return Float{Float: value, Valid: true}
 }
 
 func (n *Float) Set(value float64) {
@@ -113,6 +137,12 @@ func (n *Float) Set(value float64) {
 	n.Float = value
 }
 
+func (n *Float) Unset() {
+	n.Valid = false
+	n.Float = 0.0
+}
+
+// Implement sql.Scanner interface
 func (n *Float) Scan(src interface{}) error {
 	n.Valid = false
 	if src == nil {
@@ -183,9 +213,18 @@ type Int struct {
 	Valid bool
 }
 
+func SomeInt(value int) Int {
+	return Int{Int: value, Valid: true}
+}
+
 func (n *Int) Set(value int) {
 	n.Valid = true
 	n.Int = value
+}
+
+func (n *Int) Unset() {
+	n.Valid = false
+	n.Int = 0
 }
 
 // Implement sql.Scanner interface
@@ -204,6 +243,8 @@ func (n *Int) Scan(src interface{}) error {
 		n.Set(int(i64))
 	case int64:
 		n.Set(int(t))
+	case int:
+		n.Set(t)
 	}
 	return nil
 }
@@ -250,9 +291,18 @@ type Time struct {
 	Valid bool
 }
 
+func SomeTime(value time.Time) Time {
+	return Time{Time: value, Valid: true}
+}
+
 func (n *Time) Set(value time.Time) {
 	n.Valid = true
 	n.Time = value
+}
+
+func (n *Time) Unset() {
+	n.Valid = false
+	n.Time = time.Time{}
 }
 
 // Implement sql.Scanner interface
@@ -326,9 +376,18 @@ type Date struct {
 	Valid bool
 }
 
+func SomeDate(value date.Date) Date {
+	return Date{Date: value, Valid: true}
+}
+
 func (n *Date) Set(value date.Date) {
 	n.Valid = true
 	n.Date = value
+}
+
+func (n *Date) Unset() {
+	n.Valid = false
+	n.Date = date.Date{}
 }
 
 // Implement sql.Scanner interface
@@ -397,21 +456,30 @@ func (n *Date) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// Uuid is a nullable date.Date that doesn't require an extra allocation or dereference.
+// UUID is a nullable date.Date that doesn't require an extra allocation or dereference.
 // It supports encoding/decoding with database/sql, encoding/gob, and encoding/json.
-type Uuid struct {
-	Uuid  uuid.UUID
+type UUID struct {
+	UUID  uuid.UUID
 	Valid bool
 }
 
-func (id *Uuid) Set(value uuid.UUID) {
-	id.Valid = true
-	id.Uuid = value
+func SomeUUID(value uuid.UUID) UUID {
+	return UUID{UUID: value, Valid: true}
+}
+
+func (n *UUID) Set(value uuid.UUID) {
+	n.Valid = true
+	n.UUID = value
+}
+
+func (n *UUID) Unset() {
+	n.Valid = false
+	n.UUID = uuid.UUID{}
 }
 
 // Implement sql.Scanner interface.
-func (id *Uuid) Scan(src interface{}) error {
-	id.Valid = false
+func (n *UUID) Scan(src interface{}) error {
+	n.Valid = false
 	if src == nil {
 		return nil
 	}
@@ -422,9 +490,9 @@ func (id *Uuid) Scan(src interface{}) error {
 
 		switch len(u) {
 		case 32, 36:
-			id.Uuid, err = uuid.FromString(u)
+			n.UUID, err = uuid.FromString(u)
 		case 16:
-			id.Uuid, err = uuid.FromBytes([]byte(u))
+			n.UUID, err = uuid.FromBytes([]byte(u))
 		default:
 			err = errors.New("sql/null: scan value for uuid was not 16, 32, or 36 bytes long")
 		}
@@ -437,9 +505,9 @@ func (id *Uuid) Scan(src interface{}) error {
 
 		switch len(u) {
 		case 32, 36:
-			id.Uuid, err = uuid.FromString(string(u))
+			n.UUID, err = uuid.FromString(string(u))
 		case 16:
-			id.Uuid, err = uuid.FromBytes(u)
+			n.UUID, err = uuid.FromBytes(u)
 		default:
 			err = errors.New("sql/null: scan value for uuid was not 16, 32, or 36 bytes long")
 		}
@@ -448,44 +516,44 @@ func (id *Uuid) Scan(src interface{}) error {
 			return err
 		}
 	case uuid.UUID:
-		id.Uuid = u
+		n.UUID = u
 	default:
 		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
 	}
 
-	id.Valid = true
+	n.Valid = true
 	return nil
 }
 
 // Implement driver.Valuer interface
-func (id Uuid) Value() (driver.Value, error) {
-	if !id.Valid {
+func (n UUID) Value() (driver.Value, error) {
+	if !n.Valid {
 		return nil, nil
 	} else {
-		return id.Uuid.Value()
+		return n.UUID.Value()
 	}
 }
 
 // Implement json.Marshaler interface
-func (id Uuid) MarshalJSON() ([]byte, error) {
-	if id.Valid {
-		return json.Marshal(id.Uuid)
+func (n UUID) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		return json.Marshal(n.UUID)
 	} else {
 		return JsonNull, nil
 	}
 }
 
 // Implement json.Unmarshaler interface
-func (id *Uuid) UnmarshalJSON(bytes []byte) error {
-	id.Valid = false
+func (n *UUID) UnmarshalJSON(bytes []byte) error {
+	n.Valid = false
 	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
-		id.Uuid = uuid.UUID{} //date.Date{}
+		n.UUID = uuid.UUID{} //date.Date{}
 	} else {
-		err := json.Unmarshal(bytes, &id.Uuid)
+		err := json.Unmarshal(bytes, &n.UUID)
 		if err != nil {
 			return err
 		} else {
-			id.Valid = true
+			n.Valid = true
 		}
 	}
 	return nil
