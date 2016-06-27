@@ -15,6 +15,19 @@ import (
 
 var JsonNull = []byte("null")
 
+var (
+	// NOTE: shame on Golang that these can't be const, don't modify them on accident
+
+	// NoType values are null.Type constants for convenience and readability
+	NoBool   Bool   = Bool{Valid: false}
+	NoString String = String{Valid: false}
+	NoFloat  Float  = Float{Valid: false}
+	NoInt    Int    = Int{Valid: false}
+	NoTime   Time   = Time{Valid: false}
+	NoDate   Date   = Date{Valid: false}
+	NoUUID   UUID   = UUID{Valid: false}
+)
+
 // Bool is a nullable boolean that doesn't require an extra allocation or dereference.
 // The builting sql package has a NullBool, but it doesn't implement json.Marshaler.
 type Bool sql.NullBool
