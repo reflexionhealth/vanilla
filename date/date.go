@@ -129,7 +129,7 @@ func (d Date) Before(other Date) bool {
 }
 
 func (d Date) Equal(other Date) bool {
-	return d == other
+	return (d.Month == other.Month) && (d.Day == other.Day) && (d.Year == other.Year)
 }
 
 func (d Date) After(other Date) bool {
