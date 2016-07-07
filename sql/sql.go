@@ -591,6 +591,7 @@ func InCondition(what string, optionCount int, argOffset int, dct *Dialect) stri
 		}
 		cond.WriteString(dct.Placeholder(i + argOffset))
 	}
+	cond.WriteString(")")
 	return cond.String()
 }
 
@@ -607,6 +608,7 @@ func NotInCondition(what string, optionCount int, argOffset int, dct *Dialect) s
 		}
 		cond.WriteString(dct.Placeholder(i + argOffset))
 	}
+	cond.WriteString(")")
 	return cond.String()
 }
 
