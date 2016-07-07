@@ -1,6 +1,7 @@
 package semver
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"regexp"
@@ -69,6 +70,27 @@ func (v Version) AtLeast(o Version) bool {
 
 func (v Version) AtMost(o Version) bool {
 	return !o.LessThan(v)
+}
+
+// Implements sql.Scanner interface
+func (v *Version) Scan(src interface{}) error {
+	t, ok := src.([]byte)
+	if !ok {
+		return errors.New("semver: scan value was not bytes")
+	}
+
+	version, ok := Parse(string(t))
+	if !ok {
+		return errors.New("semver: scan value is not a valid version string")
+	}
+
+	*v = version
+	return nil
+}
+
+// Implements sql.driver.Valuer interface
+func (v Version) Value() (driver.Value, error) {
+	return v.String(), nil
 }
 
 // Implements json.Marshaler interface
