@@ -578,6 +578,22 @@ func (ds *DeleteStmt) Sql() string {
 	return qry.String()
 }
 
+// TODO: Better documentation and tests for InCondition
+// e.g. qry.Where(sql.InCondition("thing", len(things), len(qry.Args()), Mysql), things...)
+func InCondition(what string, optionCount int, argOffset int, dct *Dialect) string {
+	dct = useDialect(dct)
+	cond := bytes.Buffer{}
+	cond.WriteString(what)
+	cond.WriteString(" IN (")
+	for i := 0; i < optionCount; i++ {
+		if i > 0 {
+			cond.WriteString(", ")
+		}
+		cond.WriteString(dct.Placeholder(i + argOffset))
+	}
+	return cond.String()
+}
+
 // A ColumnsFlag is a flag which controls how Columns and ColumnNames interpret
 // struct fields as columns.
 type ColumnsFlag int
