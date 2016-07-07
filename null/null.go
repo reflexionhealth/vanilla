@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/reflexionhealth/vanilla/date"
+	"github.com/reflexionhealth/vanilla/semver"
 	"github.com/satori/go.uuid"
 )
 
@@ -19,13 +20,14 @@ var (
 	// NOTE: shame on Golang that these can't be const, don't modify them on accident
 
 	// NoType values are null.Type constants for convenience and readability
-	NoBool   Bool   = Bool{Valid: false}
-	NoString String = String{Valid: false}
-	NoFloat  Float  = Float{Valid: false}
-	NoInt    Int    = Int{Valid: false}
-	NoTime   Time   = Time{Valid: false}
-	NoDate   Date   = Date{Valid: false}
-	NoUUID   UUID   = UUID{Valid: false}
+	NoBool    Bool    = Bool{Valid: false}
+	NoString  String  = String{Valid: false}
+	NoFloat   Float   = Float{Valid: false}
+	NoInt     Int     = Int{Valid: false}
+	NoTime    Time    = Time{Valid: false}
+	NoDate    Date    = Date{Valid: false}
+	NoUUID    UUID    = UUID{Valid: false}
+	NoVersion Version = Version{Valid: false}
 )
 
 // Bool is a nullable boolean that doesn't require an extra allocation or dereference.
@@ -167,7 +169,7 @@ func (n *Float) Scan(src interface{}) error {
 	case string:
 		f64, err := strconv.ParseFloat(t, 64)
 		if err != nil {
-			return fmt.Errorf("sql/null: converting driver.Value type %T (%q) to a null.Float: %v", src, t, strconvErr(err))
+			return fmt.Errorf("null: converting driver.Value type %T (%q) to a null.Float: %v", src, t, strconvErr(err))
 		}
 		n.Set(f64)
 	case float64:
@@ -251,7 +253,7 @@ func (n *Int) Scan(src interface{}) error {
 	case string:
 		i64, err := strconv.ParseInt(t, 10, 64)
 		if err != nil {
-			return fmt.Errorf("sql/null: converting driver.Value type %T (%q) to a null.Int: %v", src, t, strconvErr(err))
+			return fmt.Errorf("null: converting driver.Value type %T (%q) to a null.Int: %v", src, t, strconvErr(err))
 		}
 		n.Set(int(i64))
 	case int64:
@@ -341,7 +343,7 @@ func (n *Time) Scan(src interface{}) error {
 	case time.Time:
 		n.Time = t
 	default:
-		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
+		return errors.New("null: scan value was not a Time, []byte, string, or nil")
 	}
 
 	n.Valid = true
@@ -427,7 +429,7 @@ func (n *Date) Scan(src interface{}) error {
 	case time.Time:
 		srcTime.Time = t
 	default:
-		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
+		return errors.New("null: scan value was not a Time, []byte, string, or nil")
 	}
 
 	n.Valid = true
@@ -469,7 +471,7 @@ func (n *Date) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// UUID is a nullable date.Date that doesn't require an extra allocation or dereference.
+// UUID is a nullable uuid.UUID that doesn't require an extra allocation or dereference.
 // It supports encoding/decoding with database/sql, encoding/gob, and encoding/json.
 type UUID struct {
 	UUID  uuid.UUID
@@ -507,7 +509,7 @@ func (n *UUID) Scan(src interface{}) error {
 		case 16:
 			n.UUID, err = uuid.FromBytes([]byte(u))
 		default:
-			err = errors.New("sql/null: scan value for uuid was not 16, 32, or 36 bytes long")
+			err = errors.New("null: scan value for uuid was not 16, 32, or 36 bytes long")
 		}
 
 		if err != nil {
@@ -522,7 +524,7 @@ func (n *UUID) Scan(src interface{}) error {
 		case 16:
 			n.UUID, err = uuid.FromBytes(u)
 		default:
-			err = errors.New("sql/null: scan value for uuid was not 16, 32, or 36 bytes long")
+			err = errors.New("null: scan value for uuid was not 16, 32, or 36 bytes long")
 		}
 
 		if err != nil {
@@ -531,7 +533,7 @@ func (n *UUID) Scan(src interface{}) error {
 	case uuid.UUID:
 		n.UUID = u
 	default:
-		return errors.New("sql/null: scan value was not a Time, []byte, string, or nil")
+		return errors.New("null: scan value was not a UUID, []byte, string, or nil")
 	}
 
 	n.Valid = true
@@ -560,9 +562,92 @@ func (n UUID) MarshalJSON() ([]byte, error) {
 func (n *UUID) UnmarshalJSON(bytes []byte) error {
 	n.Valid = false
 	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
-		n.UUID = uuid.UUID{} //date.Date{}
+		n.UUID = uuid.UUID{}
 	} else {
 		err := json.Unmarshal(bytes, &n.UUID)
+		if err != nil {
+			return err
+		} else {
+			n.Valid = true
+		}
+	}
+	return nil
+}
+
+// Version is a nullable semver.Version that doesn't require an extra allocation or dereference.
+// It supports encoding/decoding with database/sql, encoding/gob, and encoding/json.
+type Version struct {
+	Version semver.Version
+	Valid   bool
+}
+
+func SomeVersion(value semver.Version) Version {
+	return Version{Version: value, Valid: true}
+}
+
+func (n *Version) Set(value semver.Version) {
+	n.Valid = true
+	n.Version = value
+}
+
+func (n *Version) Unset() {
+	n.Valid = false
+	n.Version = semver.Version{}
+}
+
+// Implement sql.Scanner interface.
+func (n *Version) Scan(src interface{}) error {
+	n.Valid = false
+	if src == nil {
+		return nil
+	}
+
+	switch u := src.(type) {
+	case string:
+		ver, ok := semver.Parse(u)
+		if !ok {
+			return errors.New("null: scan value string could not be parsed as a version")
+		}
+		n.Version = ver
+	case []byte:
+		ver, ok := semver.Parse(string(u))
+		if !ok {
+			return errors.New("null: scan value string could not be parsed as a version")
+		}
+		n.Version = ver
+	default:
+		return errors.New("null: scan value was not a []byte, string, or nil")
+	}
+
+	n.Valid = true
+	return nil
+}
+
+// Implement driver.Valuer interface
+func (n Version) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	} else {
+		return n.Version.String(), nil
+	}
+}
+
+// Implement json.Marshaler interface
+func (n Version) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		return json.Marshal(n.Version)
+	} else {
+		return JsonNull, nil
+	}
+}
+
+// Implement json.Unmarshaler interface
+func (n *Version) UnmarshalJSON(bytes []byte) error {
+	n.Valid = false
+	if bytes == nil || string(bytes) == `""` || string(bytes) == "null" {
+		n.Version = semver.Version{}
+	} else {
+		err := json.Unmarshal(bytes, &n.Version)
 		if err != nil {
 			return err
 		} else {
