@@ -405,31 +405,6 @@ func TestAllowedCredentials(t *testing.T) {
 	})
 }
 
-func TestDebug(t *testing.T) {
-	s := New(Options{
-		Debug: true,
-	})
-
-	if s.logf == nil {
-		t.Error("Logger not created when debug=true")
-	}
-
-	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "http://example.com/foo", nil)
-
-	s.Handler(testHandler).ServeHTTP(res, req)
-
-	assertHeaders(t, res.Header(), map[string]string{
-		"Vary": "Origin",
-		"Access-Control-Allow-Origin":      "",
-		"Access-Control-Allow-Methods":     "",
-		"Access-Control-Allow-Headers":     "",
-		"Access-Control-Allow-Credentials": "",
-		"Access-Control-Max-Age":           "",
-		"Access-Control-Expose-Headers":    "",
-	})
-}
-
 func TestOptionsPassthrough(t *testing.T) {
 	s := New(Options{
 		OptionsPassthrough: true,
@@ -480,9 +455,6 @@ func TestDisableOptionsPassthrough(t *testing.T) {
 
 func TestDefault(t *testing.T) {
 	s := Default()
-	if s.Log != nil {
-		t.Error("c.log should be nil when Default")
-	}
 	if !s.allowedOriginsAll {
 		t.Error("c.allowedOriginsAll should be true when Default")
 	}
