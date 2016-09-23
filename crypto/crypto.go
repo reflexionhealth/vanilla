@@ -24,6 +24,7 @@ const (
 // Redeclare so they don't have to be imported
 type Certificate *x509.Certificate
 type PrivateKey builtin.PrivateKey
+type PublicKey builtin.PublicKey
 
 type PemType string
 
@@ -42,15 +43,17 @@ const (
 	PemDsaParams   = PemType("DSA PARAMETERS")
 	PemEcParams    = PemType("EC PARAMETERS")
 	PemEcPrivate   = PemType("EC PRIVATE KEY")
+	PemPkix        = PemType("PUBLIC KEY")
 )
+
+type ECDSASignature struct {
+	R, S *big.Int
+}
 
 // SignSha256 accepts a message and an ECDSA or RSA private key and returns a
 // signature of the digest.
 //
-// N.B. When using an RSA key, PKCS1 v1.5 signatures are preferred over PSS,
-// because PSS is still doesn't seem widely supported/tested in the wild (Feb 2016),
-// and additionally there are no known defects of PKCS1 v1.5.
-// To sign with PSS, import the crypto/rsa and use rsa.SignPSS/VerifyPSS.
+// N.B. When using an RSA key, PKCS1 v1.5 is assumed.
 func SignSha256(key PrivateKey, msg []byte) (signature []byte, err error) {
 	digest := sha256.Sum256(msg)
 	switch k := key.(type) {
@@ -61,14 +64,31 @@ func SignSha256(key PrivateKey, msg []byte) (signature []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-		return asn1.Marshal(ecdsaSignature{r, s})
+		return asn1.Marshal(ECDSASignature{r, s})
 	default:
-		return nil, &KeyTypeError{key}
+		return nil, &PrivateKeyTypeError{key}
 	}
 }
 
-type ecdsaSignature struct {
-	R, S *big.Int
+// VerifySha256 accepts a message, signature, and ECDSA or RSA public key and
+// verifies the message was signed with the corresponding private key.
+//
+// N.B. When using an RSA key, PKCS1 v1.5 is assumed.
+func VerifySha256(pub PublicKey, msg []byte, sig []byte) bool {
+	digest := sha256.Sum256(msg)
+	switch p := pub.(type) {
+	case *rsa.PublicKey:
+		return (rsa.VerifyPKCS1v15(p, Sha256, digest[:], sig) == nil)
+	case *ecdsa.PublicKey:
+		var ec ECDSASignature
+		extra, err := asn1.Unmarshal(sig, &ec)
+		if err != nil || len(extra) > 0 {
+			return false
+		}
+		return ecdsa.Verify(p, digest[:], ec.R, ec.S)
+	default:
+		return false
+	}
 }
 
 // MustGenerateRsaKey wraps rsa.GenerateKey but panics if a key cannot be generated.
@@ -89,6 +109,16 @@ func LoadCertificate(path string) (Certificate, error) {
 	}
 
 	block, _ := pem.Decode(data) // ignoring remaining data
+	if PemType(block.Type) != PemX509 {
+		return nil, &PemTypeError{PemX509, PemType(block.Type)}
+	}
+
+	return x509.ParseCertificate(block.Bytes)
+}
+
+// LoadCertificateString loads an X509 certificate from a string.
+func LoadCertificateString(text string) (Certificate, error) {
+	block, _ := pem.Decode([]byte(text)) // ignoring remaining data
 	if PemType(block.Type) != PemX509 {
 		return nil, &PemTypeError{PemX509, PemType(block.Type)}
 	}
@@ -127,6 +157,21 @@ func LoadPrivateKey(path string) (PrivateKey, error) {
 	}
 }
 
+// LoadPrivateKeyString loads an RSA or ECDSA private key from a string.
+func LoadPrivateKeyString(text string) (PrivateKey, error) {
+	block, _ := pem.Decode([]byte(text)) // ignoring remaining data
+	switch PemType(block.Type) {
+	case PemPkcs8Info:
+		return x509.ParsePKCS8PrivateKey(block.Bytes)
+	case PemRsaPrivate:
+		return x509.ParsePKCS1PrivateKey(block.Bytes)
+	case PemEcPrivate:
+		return x509.ParseECPrivateKey(block.Bytes)
+	default:
+		return nil, &PemTypeError{"* PRIVATE KEY", PemType(block.Type)}
+	}
+}
+
 // MustLoadPrivateKey is like LoadPrivateKey but panics if the key cannot be loaded.
 // It simplifies safe intialization of global variables.
 func MustLoadPrivateKey(path string) PrivateKey {
@@ -137,12 +182,47 @@ func MustLoadPrivateKey(path string) PrivateKey {
 	return key
 }
 
-type KeyTypeError struct {
+// LoadPublicKey loads an RSA or ECDSA public key in PEM format.
+func LoadPublicKey(path string) (PublicKey, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(data) // ignoring remaining data
+	return x509.ParsePKIXPublicKey(block.Bytes)
+}
+
+// LoadPublicKeyString loads an RSA or ECDSA public key from a string.
+func LoadPublicKeyString(text string) (PublicKey, error) {
+	block, _ := pem.Decode([]byte(text)) // ignoring remaining data
+	return x509.ParsePKIXPublicKey(block.Bytes)
+}
+
+// MustLoadPublicKey is like LoadPublicKey but panics if the key cannot be loaded.
+// It simplifies safe intialization of global variables.
+func MustLoadPublicKey(path string) PublicKey {
+	key, err := LoadPublicKey(path)
+	if err != nil {
+		panic(err)
+	}
+	return key
+}
+
+type PrivateKeyTypeError struct {
 	Key PrivateKey
 }
 
-func (err *KeyTypeError) Error() string {
-	return `crypto: unsupported private key type"`
+func (err *PrivateKeyTypeError) Error() string {
+	return `crypto: unsupported private key type`
+}
+
+type PublicKeyTypeError struct {
+	Key PublicKey
+}
+
+func (err *PublicKeyTypeError) Error() string {
+	return `crypto: unsupported public key type`
 }
 
 type PemTypeError struct {
