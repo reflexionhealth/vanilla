@@ -1,0 +1,6 @@
+[package]
+name = "vanilla"
+version = "0.2.0"
+authors = ["Kevin Stenerson <kevin@reflexionhealth.com>", "Brian Tai <brian@reflexionhealth.com>"]
+repository = "https://github.com/reflexionhealth/vanilla"
+license = "BSD-3-Clause"
