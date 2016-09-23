@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/reflexionhealth/vanilla/expect"
 )
 
 func TestParse(t *testing.T) {
@@ -27,8 +27,8 @@ func TestParse(t *testing.T) {
 
 	for _, example := range examples {
 		parsed, ok := Parse(example.String)
-		assert.Equal(t, example.Version, parsed, example.String)
-		assert.Equal(t, example.NotOk, !ok, example.String)
+		expect.Equal(t, parsed, example.Version, example.String)
+		expect.Equal(t, !ok, example.NotOk, example.String)
 	}
 }
 
@@ -54,10 +54,10 @@ func TestComparisons(t *testing.T) {
 	}
 
 	for _, ex := range examples {
-		assert.Equal(t, ex.Lt, ex.A.LessThan(ex.B), ex.A.String()+" < "+ex.B.String())
-		assert.Equal(t, ex.Gt, ex.A.GreaterThan(ex.B), ex.A.String()+" > "+ex.B.String())
-		assert.Equal(t, ex.Lte, ex.A.AtMost(ex.B), ex.A.String()+" <= "+ex.B.String())
-		assert.Equal(t, ex.Gte, ex.A.AtLeast(ex.B), ex.A.String()+" >= "+ex.B.String())
+		expect.Equal(t, ex.A.LessThan(ex.B), ex.Lt, ex.A.String()+" < "+ex.B.String())
+		expect.Equal(t, ex.A.GreaterThan(ex.B), ex.Gt, ex.A.String()+" > "+ex.B.String())
+		expect.Equal(t, ex.A.AtMost(ex.B), ex.Lte, ex.A.String()+" <= "+ex.B.String())
+		expect.Equal(t, ex.A.AtLeast(ex.B), ex.Gte, ex.A.String()+" >= "+ex.B.String())
 	}
 }
 
@@ -76,17 +76,17 @@ func TestString(t *testing.T) {
 	}
 
 	for _, ex := range examples {
-		assert.Equal(t, ex.String, ex.Version.String(), ex.String)
+		expect.Equal(t, ex.Version.String(), ex.String)
 	}
 }
 
 func TestMarshalJSON(t *testing.T) {
 	b1, err1 := json.Marshal(Version{1, 0, 0})
-	assert.Nil(t, err1)
-	assert.Equal(t, `"1.0.0"`, string(b1))
+	expect.Nil(t, err1)
+	expect.Equal(t, string(b1), `"1.0.0"`)
 	b2, err2 := json.Marshal(Version{2, 0, 30})
-	assert.Nil(t, err2)
-	assert.Equal(t, `"2.0.30"`, string(b2))
+	expect.Nil(t, err2)
+	expect.Equal(t, string(b2), `"2.0.30"`)
 }
 
 func TestUnmarshalJSON(t *testing.T) {
@@ -103,8 +103,8 @@ func TestUnmarshalJSON(t *testing.T) {
 	var v Version
 	for _, ex := range examples {
 		err := json.Unmarshal([]byte(ex.Json), &v)
-		assert.Nil(t, err, ex.Json)
-		assert.Equal(t, ex.Version, v, ex.Json)
+		expect.Nil(t, err, ex.Json)
+		expect.Equal(t, v, ex.Version, ex.Json)
 	}
 
 	badExamples := []struct {
@@ -118,8 +118,8 @@ func TestUnmarshalJSON(t *testing.T) {
 
 	for _, ex := range badExamples {
 		err := json.Unmarshal([]byte(ex.Json), &v)
-		if assert.NotNil(t, err, ex.Json) {
-			assert.Equal(t, ex.Error, err.Error(), ex.Json)
+		if expect.NotNil(t, err, ex.Json) {
+			expect.Equal(t, err.Error(), ex.Error, ex.Json)
 		}
 	}
 }

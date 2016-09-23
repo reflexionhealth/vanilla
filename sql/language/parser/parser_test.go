@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/reflexionhealth/vanilla/expect"
 	"github.com/reflexionhealth/vanilla/sql/language/ast"
 	"github.com/reflexionhealth/vanilla/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTraceParser(t *testing.T) {
@@ -17,8 +17,8 @@ func TestTraceParser(t *testing.T) {
 	parser := New([]byte(`SELECT * FROM table_with_long_name WHERE ♫`), Ruleset{})
 	parser.Trace = &output
 	stmt, err := parser.ParseStatement()
-	assert.NotNil(t, err, "expected a parsing error")
-	assert.Nil(t, stmt)
+	expect.NotNil(t, err, "expected a parsing error")
+	expect.Nil(t, stmt)
 
 	expected := []string{
 		regexp.QuoteMeta(`  SELECT : SELECT         @ Parser.parseSelect:`) + "[0-9]+",
@@ -32,10 +32,10 @@ func TestTraceParser(t *testing.T) {
 
 	// compare trace output, ignoring the source line numbers
 	lines := strings.Split(output.String(), "\n")
-	if assert.Equal(t, len(expected), len(lines)) {
+	if expect.Equal(t, len(lines), len(expected)) {
 		maxSafe := utils.MinInt(len(expected), len(lines))
 		for i := 0; i < maxSafe; i++ {
-			assert.Regexp(t, "^"+expected[i], lines[i])
+			expect.Regexp(t, lines[i], "^"+expected[i])
 		}
 	} else {
 		t.Log("Error:", err)
@@ -72,9 +72,9 @@ func TestParseErrors(t *testing.T) {
 	for _, example := range examples {
 		parser := New([]byte(example.Input), Ruleset{})
 		stmt, err := parser.ParseStatement()
-		assert.Nil(t, stmt)
-		if assert.NotNil(t, err, "expected a parsing error") {
-			assert.Equal(t, example.Error, err.Error())
+		expect.Nil(t, stmt)
+		if expect.NotNil(t, err, "expected a parsing error") {
+			expect.Equal(t, err.Error(), example.Error)
 		}
 	}
 }
@@ -186,25 +186,25 @@ func TestParseSelect(t *testing.T) {
 			parser.Trace = os.Stdout
 		}
 		stmt, err := parser.ParseStatement()
-		assert.Nil(t, err, "Error for `"+example.Input+"`")
-		assert.Equal(t, example.Result, stmt, example.Input)
+		expect.Nil(t, err, "Error for `"+example.Input+"`")
+		expect.Equal(t, stmt, example.Result, example.Input)
 	}
 }
 
 func TestParseInsert(t *testing.T) {
 	parser := New([]byte(`INSERT INTO mytable`), Ruleset{})
 	stmt, err := parser.ParseStatement()
-	assert.Nil(t, stmt)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, `sql:1:20: cannot parse statement; reached unimplemented clause at 'mytable'`, err.Error())
+	expect.Nil(t, stmt)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.Error(), `sql:1:20: cannot parse statement; reached unimplemented clause at 'mytable'`)
 	}
 }
 
 func TestParseUpdate(t *testing.T) {
 	parser := New([]byte(`UPDATE mytable SET a = 1`), Ruleset{})
 	stmt, err := parser.ParseStatement()
-	assert.Nil(t, stmt)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, `sql:1:15: cannot parse statement; reached unimplemented clause at 'mytable'`, err.Error())
+	expect.Nil(t, stmt)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.Error(), `sql:1:15: cannot parse statement; reached unimplemented clause at 'mytable'`)
 	}
 }

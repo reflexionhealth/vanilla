@@ -3,15 +3,15 @@ package scanner
 import (
 	"testing"
 
+	"github.com/reflexionhealth/vanilla/expect"
 	"github.com/reflexionhealth/vanilla/sql/language/token"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSelect(t *testing.T) {
 	query := `SELECT * FROM users WHERE id = 3`
 
 	failOnError := func(pos token.Position, msg string) {
-		assert.Fail(t, "At Line %d, Col %d: %s", pos.Line, pos.Column, msg)
+		t.Errorf("At Line %d, Col %d: %s", pos.Line, pos.Column, msg)
 	}
 
 	s := Scanner{}
@@ -27,14 +27,14 @@ func TestSelect(t *testing.T) {
 		}
 	}
 
-	assert.Zero(t, s.ErrorCount)
-	assert.Equal(t, []token.Token{
+	expect.Equal(t, s.ErrorCount, 0)
+	expect.Equal(t, tokens, []token.Token{
 		// SELECT * FROM users
 		token.SELECT, token.ASTERISK, token.FROM, token.IDENT,
 		// WHERE id = 3
 		token.WHERE, token.IDENT, token.EQUALS, token.NUMBER,
 		token.EOS,
-	}, tokens)
+	})
 }
 
 type scanToken struct {
@@ -100,499 +100,499 @@ func scanAll(src string) *scanError {
 
 func TestSkipsWhitesace(t *testing.T) {
 	scan, err := scanOnce("\n    SELECT\n")
-	assert.Nil(t, err)
-	assert.Equal(t, token.SELECT, scan.tok)
-	assert.Equal(t, 5, scan.pos)
-	assert.Equal(t, "SELECT", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.SELECT)
+	expect.Equal(t, scan.pos, 5)
+	expect.Equal(t, scan.lit, "SELECT")
 
 	// scan, err = scanOnce("\n    --comment\n    SELECT--comment\n")
-	// assert.Nil(t, err)
-	// assert.Equal(t, token.SELECT, scan.tok)
-	// assert.Equal(t, 18, scan.pos)
-	// assert.Equal(t, "SELECT", scan.lit)
+	// expect.Nil(t, err)
+	// expect.Equal(t, scan.tok, token.SELECT)
+	// expect.Equal(t, scan.pos, 18)
+	// expect.Equal(t, scan.lit, "SELECT")
 	//
 	// scan, err = scanOnce("\n    --comment\r\n    SELECT--comment\n")
-	// assert.Nil(t, err)
-	// assert.Equal(t, token.SELECT, scan.tok)
-	// assert.Equal(t, 19, scan.pos)
-	// assert.Equal(t, "SELECT", scan.lit)
+	// expect.Nil(t, err)
+	// expect.Equal(t, scan.tok, token.SELECT)
+	// expect.Equal(t, scan.pos, 19)
+	// expect.Equal(t, scan.lit, "SELECT")
 }
 
 func TestErrorsRespectWhitespace(t *testing.T) {
 	scan, err := scanOnce("\n\n    ~\n")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 6, err.pos.Offset)
-		assert.Equal(t, 3, err.pos.Line)
-		assert.Equal(t, 5, err.pos.Column)
-		assert.Equal(t, `unexpected character U+007E '~'`, err.msg)
+	expect.Equal(t, token.INVALID, scan.tok)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 6)
+		expect.Equal(t, err.pos.Line, 3)
+		expect.Equal(t, err.pos.Column, 5)
+		expect.Equal(t, err.msg, `unexpected character U+007E '~'`)
 	}
 }
 
 func TestScansIdentifier(t *testing.T) {
 	scan, err := scanOnce(`simple`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.IDENT, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `simple`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.IDENT)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `simple`)
 
 	scan, err = scanOnce("sim$ple")
-	assert.Equal(t, token.IDENT, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `sim`, scan.lit)
+	expect.Equal(t, scan.tok, token.IDENT)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `sim`)
 
 	scan, err = scanOnceWith("sim$ple", Ruleset{DollarIsLetter: true})
-	assert.Equal(t, token.IDENT, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `sim$ple`, scan.lit)
+	expect.Equal(t, scan.tok, token.IDENT)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `sim$ple`)
 }
 
 func TestScansQuotedIdentifier(t *testing.T) {
 	scan, err := scanOnce(`"simple"`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.QUOTED_IDENT, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `simple`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.QUOTED_IDENT)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `simple`)
 
 	scan, err = scanOnceWith("`simple`", Ruleset{BacktickIsQuotemark: true})
-	assert.Nil(t, err)
-	assert.Equal(t, token.QUOTED_IDENT, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `simple`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.QUOTED_IDENT)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `simple`)
 }
 
 func TestScansStrings(t *testing.T) {
 	scan, err := scanOnce(`'simple'`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.STRING, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `'simple'`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.STRING)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `'simple'`)
 
 	scan, err = scanOnce(`' white space '`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.STRING, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `' white space '`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.STRING)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `' white space '`)
 
 	scan, err = scanOnce(`'quote\''`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.STRING, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `'quote\''`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.STRING)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `'quote\''`)
 
 	scan, err = scanOnce(`'escaped \n\r\b\t\f'`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.STRING, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `'escaped \n\r\b\t\f'`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.STRING)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `'escaped \n\r\b\t\f'`)
 
 	scan, err = scanOnce(`'slashes \\ \/'`)
-	assert.Nil(t, err)
-	assert.Equal(t, token.STRING, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `'slashes \\ \/'`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.STRING)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `'slashes \\ \/'`)
 
 	scan, err = scanOnceWith(`"simple"`, Ruleset{DoubleQuoteIsString: true})
-	assert.Nil(t, err)
-	assert.Equal(t, token.STRING, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, `"simple"`, scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.STRING)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, `"simple"`)
 }
 
 func TestReportsUsefulStringErrors(t *testing.T) {
 	scan, err := scanOnce(`'`)
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unterminated string`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `unterminated string`)
 	}
 
 	scan, err = scanOnce(`'No end quote`)
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unterminated string`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `unterminated string`)
 	}
 
 	// scan, err = scanOnce("'contains unescaped \u0007 control char'")
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 0, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 1, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in string: U+0007`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 0)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 1)
+	// 	expect.Equal(t, err.msg, `unexpected character in string: U+0007`)
 	// }
 
 	// scan, err = scanOnce("'null-byte \u0000 in string'")
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 0, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 1, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in string: U+0000`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 0)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 1)
+	// 	expect.Equal(t, err.msg, `unexpected character in string: U+0000`)
 	// }
 
 	// scan, err = scanOnce(`'\u`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 2, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `unterminated escape sequence`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 2)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 3)
+	// 	expect.Equal(t, err.msg, `unterminated escape sequence`)
 	// }
 
 	// scan, err = scanOnce(`'\`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 2, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `unterminated escape sequence`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 2)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 3)
+	// 	expect.Equal(t, err.msg, `unterminated escape sequence`)
 	// }
 
 	// scan, err = scanOnce(`'\m'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 2, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `unknown escape sequence`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 2)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 3)
+	// 	expect.Equal(t, err.msg, `unknown escape sequence`)
 	// }
 
 	// scan, err = scanOnce(`'\uD800'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 2, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 3, err.pos.Column)
-	// 	assert.Equal(t, `escape sequence is invalid unicode code point`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 2)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 3)
+	// 	expect.Equal(t, err.msg, `escape sequence is invalid unicode code point`)
 	// }
 
 	scan, err = scanOnce("'multi\nline'")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unterminated string`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `unterminated string`)
 	}
 
 	scan, err = scanOnce("'multi\rline'")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unterminated string`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `unterminated string`)
 	}
 
 	// scan, err = scanOnce(`'bad \z esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character escape sequence: \z`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character escape sequence: \z`)
 	// }
 
 	// scan, err = scanOnce(`'bad \x esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character escape sequence: \x`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character escape sequence: \x`)
 	// }
 
 	// scan, err = scanOnce(`'bad \u1 esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in escape sequence: U+0020 ' '`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character in escape sequence: U+0020 ' '`)
 	// }
 
 	// scan, err = scanOnce(`'bad \u0XX1 esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character in escape sequence: U+0058 'X'`)
 	// }
 
 	// scan, err = scanOnce(`'bad \uXXXX esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character in escape sequence: U+0058 'X'`)
 	// }
 
 	// scan, err = scanOnce(`'bad \uFXXX esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character in escape sequence: U+0058 'X'`)
 	// }
 
 	// scan, err = scanOnce(`'bad \uXXXF esc'`)
-	// assert.Equal(t, token.INVALID, scan.tok)
-	// if assert.NotNil(t, err) {
-	// 	assert.Equal(t, 6, err.pos.Offset)
-	// 	assert.Equal(t, 1, err.pos.Line)
-	// 	assert.Equal(t, 7, err.pos.Column)
-	// 	assert.Equal(t, `unexpected character in escape sequence: U+0058 'X'`, err.msg)
+	// expect.Equal(t, scan.tok, token.INVALID)
+	// if expect.NotNil(t, err) {
+	// 	expect.Equal(t, err.pos.Offset, 6)
+	// 	expect.Equal(t, err.pos.Line, 1)
+	// 	expect.Equal(t, err.pos.Column, 7)
+	// 	expect.Equal(t, err.msg, `unexpected character in escape sequence: U+0058 'X'`)
 	// }
 }
 
 func TestScansNumbers(t *testing.T) {
 	scan, err := scanOnce("4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "4")
 
 	scan, err = scanOnce("4.123")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "4.123", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "4.123")
 
 	scan, err = scanOnce(".4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, ".4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, ".4")
 
 	scan, err = scanOnce(".123")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, ".123", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, ".123")
 
 	scan, err = scanOnce("9")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "9", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "9")
 
 	scan, err = scanOnce("0")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "0", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "0")
 
 	scan, err = scanOnce("0.123")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "0.123", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "0.123")
 
 	scan, err = scanOnce("123e4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "123e4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "123e4")
 
 	scan, err = scanOnce("123e-4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "123e-4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "123e-4")
 
 	scan, err = scanOnce("123e+4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "123e+4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "123e+4")
 
 	scan, err = scanOnce(".123e4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, ".123e4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, ".123e4")
 
 	scan, err = scanOnce(".123e-4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, ".123e-4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, ".123e-4")
 
 	scan, err = scanOnce(".123e+4")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, ".123e+4", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, ".123e+4")
 
 	scan, err = scanOnce(".123e4567")
-	assert.Nil(t, err)
-	assert.Equal(t, token.NUMBER, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, ".123e4567", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.NUMBER)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, ".123e4567")
 }
 
 func TestReportsUsefulNumberErrors(t *testing.T) {
 	scan, err := scanOnce("1.")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `missing digits after decimal point in number`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `missing digits after decimal point in number`)
 	}
 
 	scan, err = scanOnce("1.A")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `missing digits after decimal point in number`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `missing digits after decimal point in number`)
 	}
 
 	scan, err = scanOnce("1.0e")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `missing digits after exponent in number`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `missing digits after exponent in number`)
 	}
 
 	scan, err = scanOnce("1.0eA")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `missing digits after exponent in number`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `missing digits after exponent in number`)
 	}
 }
 
 func TestScansPunctuation(t *testing.T) {
 	scan, err := scanOnce("$")
-	assert.Nil(t, err)
-	assert.Equal(t, token.DOLLAR, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.DOLLAR)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("(")
-	assert.Nil(t, err)
-	assert.Equal(t, token.LEFT_PAREN, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.LEFT_PAREN)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce(")")
-	assert.Nil(t, err)
-	assert.Equal(t, token.RIGHT_PAREN, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.RIGHT_PAREN)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce(";")
-	assert.Nil(t, err)
-	assert.Equal(t, token.SEMICOLON, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.SEMICOLON)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce(":")
-	assert.Nil(t, err)
-	assert.Equal(t, token.COLON, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.COLON)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("=")
-	assert.Nil(t, err)
-	assert.Equal(t, token.EQUALS, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.EQUALS)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("@")
-	assert.Nil(t, err)
-	assert.Equal(t, token.AT, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.AT)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("+")
-	assert.Nil(t, err)
-	assert.Equal(t, token.PLUS, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.PLUS)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("-")
-	assert.Nil(t, err)
-	assert.Equal(t, token.MINUS, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.MINUS)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("/")
-	assert.Nil(t, err)
-	assert.Equal(t, token.SLASH, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.SLASH)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce(",")
-	assert.Nil(t, err)
-	assert.Equal(t, token.COMMA, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.COMMA)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce(".")
-	assert.Nil(t, err)
-	assert.Equal(t, token.PERIOD, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.PERIOD)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("*")
-	assert.Nil(t, err)
-	assert.Equal(t, token.ASTERISK, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.ASTERISK)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("?")
-	assert.Nil(t, err)
-	assert.Equal(t, token.QUESTION, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.QUESTION)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("[")
-	assert.Nil(t, err)
-	assert.Equal(t, token.LEFT_BRACKET, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.LEFT_BRACKET)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 
 	scan, err = scanOnce("]")
-	assert.Nil(t, err)
-	assert.Equal(t, token.RIGHT_BRACKET, scan.tok)
-	assert.Equal(t, 0, scan.pos)
-	assert.Equal(t, "", scan.lit)
+	expect.Nil(t, err)
+	expect.Equal(t, scan.tok, token.RIGHT_BRACKET)
+	expect.Equal(t, scan.pos, 0)
+	expect.Equal(t, scan.lit, "")
 }
 
 func TestReportsUsefulunknownCharacter(t *testing.T) {
 	scan, err := scanOnce("\u203B")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, "unexpected character U+203B '\u203B'", err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, "unexpected character U+203B '\u203B'")
 	}
 
 	scan, err = scanOnce("\u200b")
-	assert.Equal(t, token.INVALID, scan.tok)
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unexpected character U+200B`, err.msg)
+	expect.Equal(t, scan.tok, token.INVALID)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `unexpected character U+200B`)
 	}
 }
 
@@ -600,14 +600,14 @@ func TestScannerNextCharacter(t *testing.T) {
 	var err *scanError
 
 	err = scanAll("SELECT * FROM candies\r\n  WHERE sweetness = 11\n\r\r")
-	assert.Nil(t, err)
+	expect.Nil(t, err)
 
 	err = scanAll(string([]byte{0x00, 0xFF}))
-	if assert.NotNil(t, err) {
-		assert.Equal(t, 0, err.pos.Offset)
-		assert.Equal(t, 1, err.pos.Line)
-		assert.Equal(t, 1, err.pos.Column)
-		assert.Equal(t, `unexpected character U+0000`, err.msg)
+	if expect.NotNil(t, err) {
+		expect.Equal(t, err.pos.Offset, 0)
+		expect.Equal(t, err.pos.Line, 1)
+		expect.Equal(t, err.pos.Column, 1)
+		expect.Equal(t, err.msg, `unexpected character U+0000`)
 	}
 }
 
@@ -620,26 +620,26 @@ func TestScanPos(t *testing.T) {
 	var scan scanToken
 	s := Scanner{}
 	s.Init([]byte("CREATE TABLE\n  candies\n()"), handleError, Ruleset{})
-	assert.Equal(t, token.Position{"sql", 0, 1, 1}, s.Pos())
-	assert.Nil(t, err)
+	expect.Equal(t, s.Pos(), token.Position{"sql", 0, 1, 1})
+	expect.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"sql", 6, 1, 7}, s.Pos())
-	assert.Nil(t, err)
+	expect.Equal(t, s.Pos(), token.Position{"sql", 6, 1, 7})
+	expect.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"sql", 12, 1, 13}, s.Pos())
-	assert.Nil(t, err)
+	expect.Equal(t, s.Pos(), token.Position{"sql", 12, 1, 13})
+	expect.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"sql", 22, 2, 10}, s.Pos())
-	assert.Nil(t, err)
+	expect.Equal(t, s.Pos(), token.Position{"sql", 22, 2, 10})
+	expect.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"sql", 24, 3, 2}, s.Pos())
-	assert.Nil(t, err)
+	expect.Equal(t, s.Pos(), token.Position{"sql", 24, 3, 2})
+	expect.Nil(t, err)
 
 	scan.pos, scan.tok, scan.lit = s.Scan()
-	assert.Equal(t, token.Position{"sql", 25, 3, 3}, s.Pos())
-	assert.Nil(t, err)
+	expect.Equal(t, s.Pos(), token.Position{"sql", 25, 3, 3})
+	expect.Nil(t, err)
 }
