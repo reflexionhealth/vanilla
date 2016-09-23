@@ -643,9 +643,14 @@ const (
 // a slice of columns for the struct's fields. It accepts the ColumnsFlag
 // flags to control what fields and names are returned.
 //
+// Anonymous struct fields are treated as if their inner fields were in
+// the outer struct. Currently, if multiple fields with the same name multiple
+// columns with that name will appear multiple times in the response.
+//
 // For a plain []string, see the ColumnNames function
 func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
-	typ := reflect.TypeOf(structValue)
+	val := reflect.ValueOf(structValue)
+	typ := val.Type()
 	if typ.Kind() != reflect.Struct {
 		// needless runtime sacrifice to the gods of type safety
 		return nil, &reflect.ValueError{"Columns", typ.Kind()}
@@ -658,7 +663,15 @@ func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 			continue
 		}
 
-		columns = append(columns, Column{Name: inflect(fld.Name, flags)})
+		if fld.Anonymous {
+			cols, err := Columns(val.Field(i).Interface(), flags)
+			if err != nil {
+				return nil, err
+			}
+			columns = append(columns, cols...)
+		} else {
+			columns = append(columns, Column{Name: inflect(fld.Name, flags)})
+		}
 	}
 
 	return columns, nil
@@ -667,8 +680,13 @@ func Columns(structValue interface{}, flags ColumnsFlag) ([]Column, error) {
 // ColumnNames uses the reflect package to inspect a struct value and returns
 // a slice of the column names for the struct's fields. It accepts the ColumnsFlag
 // flags to control what fields and names are returned.
+//
+// Anonymous struct fields are treated as if their inner fields were in
+// the outer struct. Currently, if multiple fields with the same name multiple
+// columns with that name will appear multiple times in the response.
 func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
-	typ := reflect.TypeOf(structValue)
+	val := reflect.ValueOf(structValue)
+	typ := val.Type()
 	if typ.Kind() != reflect.Struct {
 		// needless runtime sacrifice to the gods of type safety
 		return nil, &reflect.ValueError{"ColumnNames", typ.Kind()}
@@ -681,7 +699,15 @@ func ColumnNames(structValue interface{}, flags ColumnsFlag) ([]string, error) {
 			continue
 		}
 
-		columns = append(columns, inflect(fld.Name, flags))
+		if fld.Anonymous {
+			cols, err := ColumnNames(val.Field(i).Interface(), flags)
+			if err != nil {
+				return nil, err
+			}
+			columns = append(columns, cols...)
+		} else {
+			columns = append(columns, inflect(fld.Name, flags))
+		}
 	}
 
 	return columns, nil
