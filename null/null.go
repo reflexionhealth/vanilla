@@ -11,7 +11,7 @@ import (
 
 	"github.com/reflexionhealth/vanilla/date"
 	"github.com/reflexionhealth/vanilla/semver"
-	"github.com/satori/go.uuid"
+	"github.com/reflexionhealth/vanilla/uuid"
 )
 
 var JsonNull = []byte("null")
@@ -492,61 +492,26 @@ func (n *UUID) Unset() {
 	n.UUID = uuid.UUID{}
 }
 
-// Implement sql.Scanner interface.
-func (n *UUID) Scan(src interface{}) error {
-	n.Valid = false
-	if src == nil {
-		return nil
-	}
-
-	switch u := src.(type) {
-	case string:
-		var err error
-
-		switch len(u) {
-		case 32, 36:
-			n.UUID, err = uuid.FromString(u)
-		case 16:
-			n.UUID, err = uuid.FromBytes([]byte(u))
-		default:
-			err = errors.New("null: scan value for uuid was not 16, 32, or 36 bytes long")
-		}
-
-		if err != nil {
-			return err
-		}
-	case []byte:
-		var err error
-
-		switch len(u) {
-		case 32, 36:
-			n.UUID, err = uuid.FromString(string(u))
-		case 16:
-			n.UUID, err = uuid.FromBytes(u)
-		default:
-			err = errors.New("null: scan value for uuid was not 16, 32, or 36 bytes long")
-		}
-
-		if err != nil {
-			return err
-		}
-	case uuid.UUID:
-		n.UUID = u
-	default:
-		return errors.New("null: scan value was not a UUID, []byte, string, or nil")
-	}
-
-	n.Valid = true
-	return nil
-}
-
-// Implement driver.Valuer interface
+// Value implements the driver.Valuer interface.
 func (n UUID) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
-	} else {
-		return n.UUID.Value()
 	}
+
+	// Delegate to UUID Value function
+	return n.UUID.Value()
+}
+
+// Scan implements the sql.Scanner interface.
+func (n *UUID) Scan(src interface{}) error {
+	if src == nil {
+		n.UUID, n.Valid = uuid.Nil, false
+		return nil
+	}
+
+	// Delegate to UUID Scan function
+	n.Valid = true
+	return n.UUID.Scan(src)
 }
 
 // Implement json.Marshaler interface

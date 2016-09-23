@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/reflexionhealth/vanilla/date"
+	"github.com/reflexionhealth/vanilla/uuid"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,6 +27,8 @@ func TestImplementsJsonMarshaller(t *testing.T) {
 	assert.NotNil(t, marshaler)
 	marshaler = Bool{}
 	assert.NotNil(t, marshaler)
+	marshaler = UUID{}
+	assert.NotNil(t, marshaler)
 }
 
 func TestImplementsJsonUnmarshaller(t *testing.T) {
@@ -38,6 +42,8 @@ func TestImplementsJsonUnmarshaller(t *testing.T) {
 	unmarshaler = &Int{}
 	assert.NotNil(t, unmarshaler)
 	unmarshaler = &Bool{}
+	assert.NotNil(t, unmarshaler)
+	unmarshaler = &UUID{}
 	assert.NotNil(t, unmarshaler)
 }
 
@@ -53,6 +59,8 @@ func TestImplementsSqlValuer(t *testing.T) {
 	assert.NotNil(t, valuer)
 	valuer = Bool{}
 	assert.NotNil(t, valuer)
+	valuer = UUID{}
+	assert.NotNil(t, valuer)
 }
 
 func TestImplementSqlScanner(t *testing.T) {
@@ -66,6 +74,8 @@ func TestImplementSqlScanner(t *testing.T) {
 	scanner = &Int{}
 	assert.NotNil(t, scanner)
 	scanner = &Bool{}
+	assert.NotNil(t, scanner)
+	scanner = &UUID{}
 	assert.NotNil(t, scanner)
 }
 
@@ -106,6 +116,13 @@ func TestGobEncodeDecode(t *testing.T) {
 	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destBool))
 	assert.Equal(t, srcBool, destBool)
 	buf.Reset()
+
+	var srcUUID, destUUID UUID
+	srcUUID.Set(uuid.UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8})
+	assert.Nil(t, gob.NewEncoder(&buf).Encode(srcUUID))
+	assert.Nil(t, gob.NewDecoder(&buf).Decode(&destUUID))
+	assert.Equal(t, srcUUID, destUUID)
+	buf.Reset()
 }
 
 func TestSetNullable(t *testing.T) {
@@ -133,6 +150,11 @@ func TestSetNullable(t *testing.T) {
 	assert.False(t, nb.Valid)
 	nb.Set(true)
 	assert.True(t, nb.Valid)
+
+	var nu UUID
+	assert.False(t, nu.Valid)
+	nu.Set(uuid.UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8})
+	assert.True(t, nu.Valid)
 }
 
 func TestUnmarshalNullBool(t *testing.T) {
@@ -360,4 +382,34 @@ func TestScanNullDate(t *testing.T) {
 	err = n.Scan(notTime)
 	assert.NotNil(t, err)
 	assert.False(t, n.Valid)
+}
+
+func TestScanNullUUID(t *testing.T) {
+	// start with a null UUID and scan a typical UUID
+	{
+		expectedUUID := uuid.UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
+		stringUUID := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
+		n := UUID{}
+		err := n.Scan(stringUUID)
+		assert.Nil(t, err, "error unmarshaling null.UUID")
+		assert.True(t, n.Valid, "null.UUID should be valid")
+		assert.Equal(t, expectedUUID, n.UUID, "UUIDs should be equal")
+	}
+
+	// start with some UUID, and scan nil
+	{
+		n := SomeUUID(uuid.UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8})
+		err := n.Scan(nil)
+		assert.Nil(t, err, "error unmarshaling null.UUID")
+		assert.False(t, n.Valid, "null.UUID should not be valid")
+		assert.Equal(t, uuid.Nil, n.UUID, "null.UUID value should be equal to uuid.Nil")
+	}
+}
+
+func TestValueNullUUID(t *testing.T) {
+	u := UUID{}
+	val, err := u.Value()
+	assert.Nil(t, err, "error getting null.UUID value")
+	assert.Nil(t, val, "wrong value returned, should be nil")
 }
