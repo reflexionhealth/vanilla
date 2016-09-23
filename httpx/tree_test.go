@@ -1,19 +1,21 @@
-package httpserver
-
-// This file is Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
-// Use of this source code is governed by a MIT style license.
+// Copyright 2013 Julien Schmidt. All rights reserved.
+// Based on the path package, Copyright 2009 The Go Authors.
+// Use of this source code is governed by a BSD-style license.
 //
-// Modifications by Kevin Stenerson for Reflexion Health Inc. Copyright 2015
+// Modifications by Kevin Stenerson for Reflexion Health Inc. Copyright 2016
+
+package httpx
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 )
 
 func printChildren(n *node, prefix string) {
-	fmt.Printf(" %02d:%02d %s%s[%d] %v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.handlers, n.wildChild, n.nType)
+	fmt.Printf(" %02d:%02d %s%s[%d] %v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.handler, n.wildChild, n.nType)
 	for l := len(n.path); l > 0; l-- {
 		prefix += " "
 	}
@@ -22,13 +24,13 @@ func printChildren(n *node, prefix string) {
 	}
 }
 
-// Used as a workaround since we can't compare functions or their adresses
+// Used as a workaround since we can't compare functions or their addresses
 var fakeHandlerValue string
 
-func fakeHandler(val string) HandlersChain {
-	return HandlersChain{func(c *Context) {
+func fakeHandler(val string) http.HandlerFunc {
+	return func(http.ResponseWriter, *http.Request) {
 		fakeHandlerValue = val
-	}}
+	}
 }
 
 type testRequests []struct {
@@ -40,7 +42,7 @@ type testRequests []struct {
 
 func checkRequests(t *testing.T, tree *node, requests testRequests) {
 	for _, request := range requests {
-		handler, ps := tree.getValue(request.path, nil)
+		handler, ps, _ := tree.getValue(request.path)
 
 		if handler == nil {
 			if !request.nilHandler {
@@ -49,7 +51,7 @@ func checkRequests(t *testing.T, tree *node, requests testRequests) {
 		} else if request.nilHandler {
 			t.Errorf("handle mismatch for route '%s': Expected nil handle", request.path)
 		} else {
-			handler[0](nil)
+			handler.ServeHTTP(nil, nil)
 			if fakeHandlerValue != request.route {
 				t.Errorf("handle mismatch for route '%s': Wrong handle (%s != %s)", request.path, fakeHandlerValue, request.route)
 			}
@@ -67,7 +69,7 @@ func checkPriorities(t *testing.T, n *node) uint32 {
 		prio += checkPriorities(t, n.children[i])
 	}
 
-	if n.handlers != nil {
+	if n.handler != nil {
 		prio++
 	}
 
@@ -89,7 +91,7 @@ func checkMaxParams(t *testing.T, n *node) uint8 {
 			maxParams = params
 		}
 	}
-	if n.nType != static && !n.wildChild {
+	if n.nType > root && !n.wildChild {
 		maxParams++
 	}
 
@@ -364,7 +366,276 @@ func TestTreeDoubleWildcard(t *testing.T) {
 	}
 }
 
+/*func TestTreeDuplicateWildcard(t *testing.T) {
+	tree := &node{}
+
+	routes := [...]string{
+		"/:id/:name/:id",
+	}
+	for _, route := range routes {
+		...
+	}
+}*/
+
+func TestTreeTrailingSlashRedirect(t *testing.T) {
+	tree := &node{}
+
+	routes := [...]string{
+		"/hi",
+		"/b/",
+		"/search/:query",
+		"/cmd/:tool/",
+		"/src/*filepath",
+		"/x",
+		"/x/y",
+		"/y/",
+		"/y/z",
+		"/0/:id",
+		"/0/:id/1",
+		"/1/:id/",
+		"/1/:id/2",
+		"/aa",
+		"/a/",
+		"/admin",
+		"/admin/:category",
+		"/admin/:category/:page",
+		"/doc",
+		"/doc/go_faq.html",
+		"/doc/go1.html",
+		"/no/a",
+		"/no/b",
+		"/api/hello/:name",
+	}
+	for _, route := range routes {
+		recv := catchPanic(func() {
+			tree.addRoute(route, fakeHandler(route))
+		})
+		if recv != nil {
+			t.Fatalf("panic inserting route '%s': %v", route, recv)
+		}
+	}
+
+	//printChildren(tree, "")
+
+	tsrRoutes := [...]string{
+		"/hi/",
+		"/b",
+		"/search/gopher/",
+		"/cmd/vet",
+		"/src",
+		"/x/",
+		"/y",
+		"/0/go/",
+		"/1/go",
+		"/a",
+		"/admin/",
+		"/admin/config/",
+		"/admin/config/permissions/",
+		"/doc/",
+	}
+	for _, route := range tsrRoutes {
+		handler, _, tsr := tree.getValue(route)
+		if handler != nil {
+			t.Fatalf("non-nil handler for TSR route '%s", route)
+		} else if !tsr {
+			t.Errorf("expected TSR recommendation for route '%s'", route)
+		}
+	}
+
+	noTsrRoutes := [...]string{
+		"/",
+		"/no",
+		"/no/",
+		"/_",
+		"/_/",
+		"/api/world/abc",
+	}
+	for _, route := range noTsrRoutes {
+		handler, _, tsr := tree.getValue(route)
+		if handler != nil {
+			t.Fatalf("non-nil handler for No-TSR route '%s", route)
+		} else if tsr {
+			t.Errorf("expected no TSR recommendation for route '%s'", route)
+		}
+	}
+}
+
+func TestTreeRootTrailingSlashRedirect(t *testing.T) {
+	tree := &node{}
+
+	recv := catchPanic(func() {
+		tree.addRoute("/:test", fakeHandler("/:test"))
+	})
+	if recv != nil {
+		t.Fatalf("panic inserting test route: %v", recv)
+	}
+
+	handler, _, tsr := tree.getValue("/")
+	if handler != nil {
+		t.Fatalf("non-nil handler")
+	} else if tsr {
+		t.Errorf("expected no TSR recommendation")
+	}
+}
+
+func TestTreeFindCaseInsensitivePath(t *testing.T) {
+	tree := &node{}
+
+	routes := [...]string{
+		"/hi",
+		"/b/",
+		"/ABC/",
+		"/search/:query",
+		"/cmd/:tool/",
+		"/src/*filepath",
+		"/x",
+		"/x/y",
+		"/y/",
+		"/y/z",
+		"/0/:id",
+		"/0/:id/1",
+		"/1/:id/",
+		"/1/:id/2",
+		"/aa",
+		"/a/",
+		"/doc",
+		"/doc/go_faq.html",
+		"/doc/go1.html",
+		"/doc/go/away",
+		"/no/a",
+		"/no/b",
+		"/Π",
+		"/u/apfêl/",
+		"/u/äpfêl/",
+		"/u/öpfêl",
+		"/v/Äpfêl/",
+		"/v/Öpfêl",
+		"/w/♬",  // 3 byte
+		"/w/♭/", // 3 byte, last byte differs
+		"/w/𠜎",  // 4 byte
+		"/w/𠜏/", // 4 byte
+	}
+
+	for _, route := range routes {
+		recv := catchPanic(func() {
+			tree.addRoute(route, fakeHandler(route))
+		})
+		if recv != nil {
+			t.Fatalf("panic inserting route '%s': %v", route, recv)
+		}
+	}
+
+	// Check out == in for all registered routes
+	// With fixTrailingSlash = true
+	for _, route := range routes {
+		out, found := tree.findCaseInsensitivePath(route, true)
+		if !found {
+			t.Errorf("Route '%s' not found!", route)
+		} else if string(out) != route {
+			t.Errorf("Wrong result for route '%s': %s", route, string(out))
+		}
+	}
+	// With fixTrailingSlash = false
+	for _, route := range routes {
+		out, found := tree.findCaseInsensitivePath(route, false)
+		if !found {
+			t.Errorf("Route '%s' not found!", route)
+		} else if string(out) != route {
+			t.Errorf("Wrong result for route '%s': %s", route, string(out))
+		}
+	}
+
+	tests := []struct {
+		in    string
+		out   string
+		found bool
+		slash bool
+	}{
+		{"/HI", "/hi", true, false},
+		{"/HI/", "/hi", true, true},
+		{"/B", "/b/", true, true},
+		{"/B/", "/b/", true, false},
+		{"/abc", "/ABC/", true, true},
+		{"/abc/", "/ABC/", true, false},
+		{"/aBc", "/ABC/", true, true},
+		{"/aBc/", "/ABC/", true, false},
+		{"/abC", "/ABC/", true, true},
+		{"/abC/", "/ABC/", true, false},
+		{"/SEARCH/QUERY", "/search/QUERY", true, false},
+		{"/SEARCH/QUERY/", "/search/QUERY", true, true},
+		{"/CMD/TOOL/", "/cmd/TOOL/", true, false},
+		{"/CMD/TOOL", "/cmd/TOOL/", true, true},
+		{"/SRC/FILE/PATH", "/src/FILE/PATH", true, false},
+		{"/x/Y", "/x/y", true, false},
+		{"/x/Y/", "/x/y", true, true},
+		{"/X/y", "/x/y", true, false},
+		{"/X/y/", "/x/y", true, true},
+		{"/X/Y", "/x/y", true, false},
+		{"/X/Y/", "/x/y", true, true},
+		{"/Y/", "/y/", true, false},
+		{"/Y", "/y/", true, true},
+		{"/Y/z", "/y/z", true, false},
+		{"/Y/z/", "/y/z", true, true},
+		{"/Y/Z", "/y/z", true, false},
+		{"/Y/Z/", "/y/z", true, true},
+		{"/y/Z", "/y/z", true, false},
+		{"/y/Z/", "/y/z", true, true},
+		{"/Aa", "/aa", true, false},
+		{"/Aa/", "/aa", true, true},
+		{"/AA", "/aa", true, false},
+		{"/AA/", "/aa", true, true},
+		{"/aA", "/aa", true, false},
+		{"/aA/", "/aa", true, true},
+		{"/A/", "/a/", true, false},
+		{"/A", "/a/", true, true},
+		{"/DOC", "/doc", true, false},
+		{"/DOC/", "/doc", true, true},
+		{"/NO", "", false, true},
+		{"/DOC/GO", "", false, true},
+		{"/π", "/Π", true, false},
+		{"/π/", "/Π", true, true},
+		{"/u/ÄPFÊL/", "/u/äpfêl/", true, false},
+		{"/u/ÄPFÊL", "/u/äpfêl/", true, true},
+		{"/u/ÖPFÊL/", "/u/öpfêl", true, true},
+		{"/u/ÖPFÊL", "/u/öpfêl", true, false},
+		{"/v/äpfêL/", "/v/Äpfêl/", true, false},
+		{"/v/äpfêL", "/v/Äpfêl/", true, true},
+		{"/v/öpfêL/", "/v/Öpfêl", true, true},
+		{"/v/öpfêL", "/v/Öpfêl", true, false},
+		{"/w/♬/", "/w/♬", true, true},
+		{"/w/♭", "/w/♭/", true, true},
+		{"/w/𠜎/", "/w/𠜎", true, true},
+		{"/w/𠜏", "/w/𠜏/", true, true},
+	}
+	// With fixTrailingSlash = true
+	for _, test := range tests {
+		out, found := tree.findCaseInsensitivePath(test.in, true)
+		if found != test.found || (found && (string(out) != test.out)) {
+			t.Errorf("Wrong result for '%s': got %s, %t; want %s, %t",
+				test.in, string(out), found, test.out, test.found)
+			return
+		}
+	}
+	// With fixTrailingSlash = false
+	for _, test := range tests {
+		out, found := tree.findCaseInsensitivePath(test.in, false)
+		if test.slash {
+			if found { // test needs a trailingSlash fix. It must not be found!
+				t.Errorf("Found without fixTrailingSlash: %s; got %s", test.in, string(out))
+			}
+		} else {
+			if found != test.found || (found && (string(out) != test.out)) {
+				t.Errorf("Wrong result for '%s': got %s, %t; want %s, %t",
+					test.in, string(out), found, test.out, test.found)
+				return
+			}
+		}
+	}
+}
+
 func TestTreeInvalidNodeType(t *testing.T) {
+	const panicMsg = "invalid node type"
+
 	tree := &node{}
 	tree.addRoute("/", fakeHandler("/"))
 	tree.addRoute("/:page", fakeHandler("/:page"))
@@ -374,9 +645,17 @@ func TestTreeInvalidNodeType(t *testing.T) {
 
 	// normal lookup
 	recv := catchPanic(func() {
-		tree.getValue("/test", nil)
+		tree.getValue("/test")
 	})
-	if rs, ok := recv.(string); !ok || rs != "invalid node type" {
-		t.Fatalf(`Expected panic "invalid node type", got "%v"`, recv)
+	if rs, ok := recv.(string); !ok || rs != panicMsg {
+		t.Fatalf("Expected panic '"+panicMsg+"', got '%v'", recv)
+	}
+
+	// case-insensitive lookup
+	recv = catchPanic(func() {
+		tree.findCaseInsensitivePath("/test", true)
+	})
+	if rs, ok := recv.(string); !ok || rs != panicMsg {
+		t.Fatalf("Expected panic '"+panicMsg+"', got '%v'", recv)
 	}
 }
