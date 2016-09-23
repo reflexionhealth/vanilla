@@ -1,4 +1,0 @@
-package: github.com/reflexionhealth/vanilla
-import:
-- package: github.com/gorilla/securecookie
-- package: github.com/satori/go.uuid
