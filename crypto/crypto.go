@@ -126,6 +126,16 @@ func LoadCertificateString(text string) (Certificate, error) {
 	return x509.ParseCertificate(block.Bytes)
 }
 
+// LoadCertificateBytes loads an X509 certificate from a byte slice.
+func LoadCertificateBytes(data []byte) (Certificate, error) {
+	block, _ := pem.Decode(data) // ignoring remaining data
+	if PemType(block.Type) != PemX509 {
+		return nil, &PemTypeError{PemX509, PemType(block.Type)}
+	}
+
+	return x509.ParseCertificate(block.Bytes)
+}
+
 // MustLoadCertificate is like LoadCertificate but panics if the key cannot be loaded.
 // It simplifies safe intialization of global variables.
 func MustLoadCertificate(path string) Certificate {
@@ -172,6 +182,21 @@ func LoadPrivateKeyString(text string) (PrivateKey, error) {
 	}
 }
 
+// LoadPrivateKeyBytes loads an RSA or ECDSA private key from a byte slice.
+func LoadPrivateKeyBytes(data []byte) (PrivateKey, error) {
+	block, _ := pem.Decode(data) // ignoring remaining data
+	switch PemType(block.Type) {
+	case PemPkcs8Info:
+		return x509.ParsePKCS8PrivateKey(block.Bytes)
+	case PemRsaPrivate:
+		return x509.ParsePKCS1PrivateKey(block.Bytes)
+	case PemEcPrivate:
+		return x509.ParseECPrivateKey(block.Bytes)
+	default:
+		return nil, &PemTypeError{"* PRIVATE KEY", PemType(block.Type)}
+	}
+}
+
 // MustLoadPrivateKey is like LoadPrivateKey but panics if the key cannot be loaded.
 // It simplifies safe intialization of global variables.
 func MustLoadPrivateKey(path string) PrivateKey {
@@ -196,6 +221,12 @@ func LoadPublicKey(path string) (PublicKey, error) {
 // LoadPublicKeyString loads an RSA or ECDSA public key from a string.
 func LoadPublicKeyString(text string) (PublicKey, error) {
 	block, _ := pem.Decode([]byte(text)) // ignoring remaining data
+	return x509.ParsePKIXPublicKey(block.Bytes)
+}
+
+// LoadPublicKeyBytes loads an RSA or ECDSA public key from a byte slice.
+func LoadPublicKeyBytes(data []byte) (PublicKey, error) {
+	block, _ := pem.Decode(data) // ignoring remaining data
 	return x509.ParsePKIXPublicKey(block.Bytes)
 }
 
