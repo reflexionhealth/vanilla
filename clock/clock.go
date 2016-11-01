@@ -5,9 +5,11 @@ import (
 	"time"
 )
 
-func AtTime(t time.Time, block func())       { Default.AtTime(t, block) }
-func In(loc *time.Location) time.Time        { return Default.In(loc) }
-func Utc() time.Time                         { return Default.Utc() }
+func Freeze(t time.Time, block func()) { Default.Freeze(t, block) }
+
+func In(loc *time.Location) time.Time { return Default.In(loc) }
+func UTC() time.Time                  { return Default.UTC() }
+
 func After(d time.Duration) <-chan time.Time { return Default.After(d) }
 func Tick(d time.Duration) <-chan time.Time  { return Default.Tick(d) }
 func Sleep(d time.Duration)                  { Default.Sleep(d) }
@@ -20,7 +22,7 @@ type Source struct {
 
 var Default Source
 
-func (s Source) AtTime(t time.Time, block func()) {
+func (s Source) Freeze(t time.Time, block func()) {
 	s.Lock()
 	defer func() {
 		s.Frozen = false
@@ -40,7 +42,7 @@ func (s Source) In(loc *time.Location) time.Time {
 	}
 }
 
-func (s Source) Utc() time.Time {
+func (s Source) UTC() time.Time {
 	return s.In(time.UTC)
 }
 
