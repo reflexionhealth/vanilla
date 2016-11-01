@@ -49,3 +49,21 @@ func TestAlterTable(t *testing.T) {
 
 	expect.Equal(t, len(tbl.Alter().Args()), 0)
 }
+
+func TestSnakecase(t *testing.T) {
+	examples := []struct {
+		Input  string
+		Output string
+	}{
+		{Input: "snake_case", Output: "snake_case"}, // NOTE: expected input is camelCase or pascalCase
+		{Input: "camelCase", Output: "camel_case"},
+		{Input: "PascalCase", Output: "pascal_case"},
+		{Input: "exampleID", Output: "example_id"},
+		{Input: "HTTPPost", Output: "http_post"},
+		{Input: "HostURL", Output: "host_url"},
+		{Input: "XMLHttpRequest", Output: "xml_http_request"},
+	}
+	for _, ex := range examples {
+		expect.Equal(t, snakecase(ex.Input), ex.Output)
+	}
+}

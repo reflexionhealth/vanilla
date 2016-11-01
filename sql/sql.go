@@ -757,9 +757,11 @@ func pascalcase(input string) string {
 
 func snakecase(input string) string {
 	var output bytes.Buffer
-	for i, char := range input {
+	var runes = []rune(input)
+	for i, char := range runes {
 		if unicode.IsUpper(char) {
-			if i > 0 {
+			// NOTE: If this is not the first character AND it is before or after a lowercase character
+			if i > 0 && (unicode.IsLower(runes[i-1]) || (i != len(runes)-1 && unicode.IsLower(runes[i+1]))) {
 				output.WriteRune('_')
 			}
 			output.WriteRune(unicode.ToLower(char))
