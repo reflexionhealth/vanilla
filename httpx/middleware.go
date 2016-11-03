@@ -14,11 +14,13 @@ func CloseHandler(h http.Handler) http.Handler {
 			req = req.WithContext(ctx)
 			defer cancel()
 
+			closed := cn.CloseNotify()
 			go func() {
 				select {
-				case <-cn.CloseNotify():
-					cancel()
 				case <-ctx.Done():
+					// do nothing
+				case <-closed:
+					cancel()
 				}
 			}()
 		}
